@@ -66,8 +66,16 @@ class RegistrationViewModel(
             RegistrationEvent.BackClicked     ->
                 _uiState.update { it.copy(currentStep = (it.currentStep - 1).coerceAtLeast(1)) }
 
-            RegistrationEvent.LoginClicked    -> onNavigateToLogin?.invoke()
+            RegistrationEvent.LoginClicked    -> {
+                onNavigateToLogin?.invoke()
+                resetState()
+            }
+            RegistrationEvent.ResetRegistration -> resetState()
         }
+    }
+
+    private fun resetState() {
+        _uiState.value = RegistrationUiState()
     }
 
     private fun validateStep1() {

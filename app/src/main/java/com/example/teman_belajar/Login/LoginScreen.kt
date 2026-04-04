@@ -7,7 +7,12 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.text.SpanStyle
+import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.style.TextDecoration
+import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -64,7 +69,34 @@ fun LoginScreen(
                 color = Color.LightGray
             )
 
-            Spacer(modifier = Modifier.weight(1f))
+            Box(
+                modifier = Modifier
+                    .weight(1f)
+                    .fillMaxWidth(),
+                contentAlignment = Alignment.Center
+            ) {
+                TextButton(onClick = { onEvent(LoginEvent.RegisterClicked) }) {
+                    Text(
+                        text = buildAnnotatedString {
+                            append("Dont have account? ")
+                            withStyle(
+                                style = SpanStyle(
+                                    color = Color(0xFF823CFF),
+                                    fontWeight = FontWeight.Bold,
+                                    textDecoration = TextDecoration.Underline
+                                )
+                            ) {
+                                append("Register here")
+                            }
+                        },
+                        style = MaterialTheme.typography.bodyLarge.copy(
+                            color = Color.Black,
+                            fontWeight = FontWeight.Bold
+                        ),
+                        textAlign = TextAlign.Center
+                    )
+                }
+            }
 
             Button(
                 onClick = { onEvent(LoginEvent.LoginClicked) },
