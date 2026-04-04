@@ -27,4 +27,5 @@ sealed class RegistrationEvent {
     object ConfirmClicked  : RegistrationEvent()
     object BackClicked     : RegistrationEvent()
     object LoginClicked    : RegistrationEvent()
+    object ResetRegistration : RegistrationEvent()
 }
