@@ -35,7 +35,6 @@ sealed class LoginEvent {
 
 @Composable
 fun LoginScreen(
-    uiState: LoginUiState = LoginUiState(),
     onEvent: (LoginEvent) -> Unit = {}
 ) {
     Surface(
@@ -60,9 +59,9 @@ fun LoginScreen(
                 ),
                 color = Color.Black
             )
-            
+
             Spacer(modifier = Modifier.height(8.dp))
-            
+
             HorizontalDivider(
                 modifier = Modifier.fillMaxWidth(0.9f),
                 thickness = 1.dp,
@@ -117,7 +116,7 @@ fun LoginScreen(
                     color = Color.White
                 )
             }
-            
+
             Spacer(modifier = Modifier.navigationBarsPadding().height(24.dp))
         }
     }
@@ -126,7 +125,7 @@ fun LoginScreen(
 @Preview(showBackground = true, showSystemUi = true)
 @Composable
 private fun LoginPreview() {
-    MaterialTheme { 
+    MaterialTheme {
         LoginScreen()
     }
 }
