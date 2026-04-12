@@ -1,5 +1,6 @@
 package com.example.teman_belajar.Register.ui.components
-import androidx.compose.animation.*
+
+import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -111,11 +112,8 @@ fun AppTextField(
                 color = RegistrationColors.TextPrimary
             )
         )
-        AnimatedVisibility(
-            visible = error != null,
-            enter = fadeIn() + expandVertically(),
-            exit  = fadeOut() + shrinkVertically()
-        ) {
+        
+        if (error != null) {
             Row(
                 modifier = Modifier.padding(
                     start = RegistrationSpacing.md,
@@ -131,7 +129,7 @@ fun AppTextField(
                 )
                 Spacer(modifier = Modifier.width(RegistrationSpacing.xs))
                 Text(
-                    text = error.orEmpty(),
+                    text = error,
                     style = MaterialTheme.typography.labelSmall.copy(
                         color = RegistrationColors.Error
                     )

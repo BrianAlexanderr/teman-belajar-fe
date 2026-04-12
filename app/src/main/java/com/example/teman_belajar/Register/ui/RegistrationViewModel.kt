@@ -3,37 +3,16 @@ package com.example.teman_belajar.Register.ui
 import android.util.Patterns
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.example.teman_belajar.Fetch.ApiService
+import com.example.teman_belajar.Fetch.RegisterRequest
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 
-sealed class RegistrationResult {
-    object Success : RegistrationResult()
-    data class Error(val message: String) : RegistrationResult()
-}
-
-interface RegistrationRepository {
-    suspend fun register(
-        firstName: String,
-        lastName: String,
-        email: String,
-        password: String,
-    ): RegistrationResult
-}
-
-class NoOpRegistrationRepository : RegistrationRepository {
-    override suspend fun register(
-        firstName: String,
-        lastName: String,
-        email: String,
-        password: String,
-    ): RegistrationResult = RegistrationResult.Success
-}
-
 class RegistrationViewModel(
-    private val repository: RegistrationRepository = NoOpRegistrationRepository()
+    private val apiService: ApiService = ApiService.create()
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(RegistrationUiState())
@@ -135,23 +114,35 @@ class RegistrationViewModel(
         viewModelScope.launch {
             _uiState.update { it.copy(isLoading = true) }
             val state = _uiState.value
-            val result = repository.register(
-                firstName = state.firstName.trim(),
-                lastName  = state.lastName.trim(),
-                email     = state.email.trim().lowercase(),
-                password  = state.password
-            )
-            when (result) {
-                is RegistrationResult.Success ->
+            
+            try {
+                val request = RegisterRequest(
+                    firstName = state.firstName.trim(),
+                    lastName = state.lastName.trim(),
+                    email = state.email.trim().lowercase(),
+                    password = state.password
+                )
+                
+                val response = apiService.register(request)
+                
+                if (response.isSuccessful) {
                     _uiState.update { it.copy(isLoading = false, currentStep = 3) }
-                is RegistrationResult.Error ->
-                    _uiState.update {
+                } else {
+                    val errorMessage = response.errorBody()?.string() ?: "Registration failed"
+                    _uiState.update { 
                         it.copy(
-                            isLoading    = false,
-                            emailError   = if (result.message.contains("email", ignoreCase = true))
-                                result.message else null
-                        )
+                            isLoading = false, 
+                            emailError = errorMessage 
+                        ) 
                     }
+                }
+            } catch (e: Exception) {
+                _uiState.update { 
+                    it.copy(
+                        isLoading = false,
+                        emailError = "Connection error"
+                    ) 
+                }
             }
         }
     }
