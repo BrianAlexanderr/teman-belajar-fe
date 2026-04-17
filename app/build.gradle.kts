@@ -73,6 +73,14 @@ dependencies {
     // Optional - Integration with RxJava
     implementation("androidx.compose.runtime:runtime-rxjava2")
     implementation("androidx.compose.material:material-icons-extended")
+    //retrofit
+    // Retrofit
+    implementation("com.squareup.retrofit2:retrofit:2.9.0")
+    //convert json
+    implementation("com.squareup.retrofit2:converter-gson:2.9.0")
+    //logging
+    implementation("com.squareup.okhttp3:logging-interceptor:4.12.0")
+
     implementation(libs.androidx.core.ktx)
     implementation(libs.androidx.appcompat)
     implementation(libs.material)
