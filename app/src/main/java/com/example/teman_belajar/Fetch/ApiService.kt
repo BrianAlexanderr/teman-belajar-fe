@@ -1,6 +1,7 @@
 package com.example.teman_belajar.Fetch
 
 import android.os.Build
+import com.example.teman_belajar.BuildConfig
 import retrofit2.Response
 import retrofit2.Retrofit
 import retrofit2.converter.gson.GsonConverterFactory
@@ -15,7 +16,7 @@ data class RegisterRequest(
 )
 
 data class RegisterResponse(
-    val message: String,
+    val msg: String,
     val timeStamp: String
 )
 
@@ -29,6 +30,7 @@ fun isEmulator(): Boolean {
                     Build.PRODUCT.contains("emulator")
             )
 }
+
 interface ApiService {
     @POST("/api/auth/register")
     suspend fun register(@Body request: RegisterRequest): Response<RegisterResponse>
@@ -37,10 +39,9 @@ interface ApiService {
         private val BASE_URL: String
             get() {
                 return if (isEmulator()) {
-                    "http://10.0.2.2:8080/"
+                    BuildConfig.EMULATOR_IP
                 } else {
-                    //ini kalo pake device fisik pake ip sendiri ip config ygy
-                    "http://10.248.163.193:8080/"
+                    BuildConfig.PHYSICAL_DEVICE_IP
                 }
             }
 

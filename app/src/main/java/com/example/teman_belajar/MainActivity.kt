@@ -77,6 +77,7 @@ class MainActivity : ComponentActivity() {
                             }
 
                             LoginScreen(
+                                uiState = uiState,
                                 onEvent = loginViewModel::onEvent
                             )
                         }

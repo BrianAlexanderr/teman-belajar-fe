@@ -1,10 +1,11 @@
 package com.example.teman_belajar.Register.ui
-
 import android.util.Patterns
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.teman_belajar.Fetch.ApiService
 import com.example.teman_belajar.Fetch.RegisterRequest
+import com.example.teman_belajar.Fetch.RegisterResponse
+import com.google.gson.Gson
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -112,7 +113,7 @@ class RegistrationViewModel(
 
     private fun submitRegistration() {
         viewModelScope.launch {
-            _uiState.update { it.copy(isLoading = true) }
+            _uiState.update { it.copy(isLoading = true, termsError = null, emailError = null) }
             val state = _uiState.value
             
             try {
@@ -128,20 +129,20 @@ class RegistrationViewModel(
                 if (response.isSuccessful) {
                     _uiState.update { it.copy(isLoading = false, currentStep = 3) }
                 } else {
-                    val errorMessage = response.errorBody()?.string() ?: "Registration failed"
-                    _uiState.update { 
-                        it.copy(
-                            isLoading = false, 
-                            emailError = errorMessage 
-                        ) 
+                    val errorJson = response.errorBody()?.string()
+                    val errorMessage =
+                        try {
+                            Gson().fromJson(errorJson, RegisterResponse::class.java).msg
+                        } catch (e: Exception) {
+                            "Registration failed"
+                        }
+                    _uiState.update {
+                        it.copy(isLoading = false, emailError = errorMessage)
                     }
                 }
             } catch (e: Exception) {
-                _uiState.update { 
-                    it.copy(
-                        isLoading = false,
-                        emailError = "Connection error"
-                    ) 
+                _uiState.update {
+                    it.copy(isLoading = false, termsError = "Connection failed. Please check your internet.")
                 }
             }
         }
