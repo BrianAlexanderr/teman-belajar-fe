@@ -2,9 +2,9 @@ package com.example.teman_belajar.Register.ui
 import android.util.Patterns
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.example.teman_belajar.Fetch.ApiService
-import com.example.teman_belajar.Fetch.RegisterRequest
-import com.example.teman_belajar.Fetch.RegisterResponse
+import com.example.teman_belajar.fetch.ApiService
+import com.example.teman_belajar.fetch.RegisterRequest
+import com.example.teman_belajar.fetch.RegisterResponse
 import com.google.gson.Gson
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow

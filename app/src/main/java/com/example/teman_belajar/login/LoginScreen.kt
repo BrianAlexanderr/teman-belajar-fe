@@ -1,4 +1,4 @@
-package com.example.teman_belajar.Login
+package com.example.teman_belajar.login
 
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.Image

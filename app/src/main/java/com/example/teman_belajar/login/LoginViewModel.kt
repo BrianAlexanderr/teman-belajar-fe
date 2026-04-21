@@ -1,4 +1,4 @@
-package com.example.teman_belajar.Login
+package com.example.teman_belajar.login
 
 import android.app.Application
 import androidx.lifecycle.AndroidViewModel

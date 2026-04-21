@@ -1,4 +1,4 @@
-package com.example.teman_belajar.Fetch
+package com.example.teman_belajar.fetch
 
 import android.os.Build
 import com.example.teman_belajar.BuildConfig
