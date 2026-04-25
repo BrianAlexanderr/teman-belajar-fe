@@ -9,6 +9,7 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Text
+import androidx.compose.material3.Text
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
@@ -16,10 +17,12 @@ import androidx.compose.ui.Modifier
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
-import com.example.teman_belajar.Login.LoginScreen
-import com.example.teman_belajar.Login.LoginViewModel
+import com.example.teman_belajar.login.LoginScreen
+import com.example.teman_belajar.login.LoginViewModel
 import com.example.teman_belajar.Register.ui.RegistrationScreen
 import com.example.teman_belajar.Register.ui.RegistrationViewModel
+import com.example.teman_belajar.home.HomeScreen
+import com.example.teman_belajar.home.HomeViewModel
 import com.example.teman_belajar.splash.SplashScreen
 import com.example.teman_belajar.theme.TemanBelajarTheme
 
@@ -28,6 +31,7 @@ class MainActivity : ComponentActivity() {
     private val mainViewModel: MainViewModel by viewModels()
     private val loginViewModel: LoginViewModel by viewModels()
     private val registrationViewModel: RegistrationViewModel by viewModels()
+    private val homeViewModel: HomeViewModel by viewModels()
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -59,9 +63,16 @@ class MainActivity : ComponentActivity() {
                         }
 
                         composable("home") {
-                            Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                                Text("HOME")
+                            val uiState by homeViewModel.uiState.collectAsState()
+                            homeViewModel.onNavigateToLogin = {
+                                navController.navigate("login") {
+                                    popUpTo("home") { inclusive = true }
+                                }
                             }
+                            HomeScreen(
+                                uiState = uiState,
+                                onEvent = homeViewModel::onEvent
+                            )
                         }
 
                         composable("login") {
@@ -77,6 +88,7 @@ class MainActivity : ComponentActivity() {
                             }
 
                             LoginScreen(
+                                uiState = uiState,
                                 onEvent = loginViewModel::onEvent
                             )
                         }

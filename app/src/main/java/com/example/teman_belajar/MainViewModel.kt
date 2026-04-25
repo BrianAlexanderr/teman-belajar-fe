@@ -9,6 +9,7 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withTimeoutOrNull
 
 class MainViewModel(application: Application) : AndroidViewModel(application) {
 
@@ -23,13 +24,19 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
 
     private fun determineStartDestination() {
         viewModelScope.launch {
-            val isFirstTime = userPreferences.isFirstTimeFlow.first()
-            val isLoggedIn = userPreferences.isLoggedInFlow.first()
+            try {
+                val result = withTimeoutOrNull(2000) {
+                    val isFirstTime = userPreferences.isFirstTimeFlow.first()
+                    val isLoggedIn = userPreferences.isLoggedInFlow.first()
+                    
+                    if (isFirstTime) "splash"
+                    else if (!isLoggedIn) "login"
+                    else "home"
+                }
+                _startDestination.value = result ?: "login"
 
-            _startDestination.value = when {
-                isFirstTime -> "splash"
-                !isLoggedIn -> "login"
-                else -> "home"
+            } catch (e: Exception) {
+                _startDestination.value = "login"
             }
         }
     }
