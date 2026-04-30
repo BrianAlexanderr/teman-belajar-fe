@@ -130,17 +130,20 @@ class RegistrationViewModel(
                     _uiState.update { it.copy(isLoading = false, currentStep = 3) }
                 } else {
                     val errorJson = response.errorBody()?.string()
+
+                    println("SERVER_ERROR_SPY: $errorJson")
+
                     val errorMessage =
                         try {
                             Gson().fromJson(errorJson, RegisterResponse::class.java).msg
-                        } catch (e: Exception) {
+                        } catch (_: Exception) {
                             "Registration failed"
                         }
                     _uiState.update {
                         it.copy(isLoading = false, emailError = errorMessage)
                     }
                 }
-            } catch (e: Exception) {
+            } catch (_: Exception) {
                 _uiState.update {
                     it.copy(isLoading = false, termsError = "Connection failed. Please check your internet.")
                 }

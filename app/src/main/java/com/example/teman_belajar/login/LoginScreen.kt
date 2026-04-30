@@ -8,6 +8,9 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.outlined.Email
+import androidx.compose.material.icons.outlined.Lock
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
@@ -19,11 +22,11 @@ import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardType
-import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.teman_belajar.R
+import com.example.teman_belajar.Register.ui.components.AppTextField
 import com.example.teman_belajar.theme.AppColors
 
 data class LoginUiState(
@@ -75,7 +78,7 @@ fun LoginScreen(
                 fontWeight = FontWeight.ExtraBold,
                 modifier = Modifier.offset(y = (-50).dp)
             )
-            
+
             Text(
                 text = "Sign in to your account to continue",
                 color = Color.Gray,
@@ -83,7 +86,25 @@ fun LoginScreen(
                 modifier = Modifier.offset(y = (-50).dp)
             )
 
-            Spacer(modifier = Modifier.height(0.dp))
+            if (uiState.errorMessage != null) {
+                Surface(
+                    color = Color(0xFFFFEBEE),
+                    shape = RoundedCornerShape(8.dp),
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(top = 8.dp)
+                ) {
+                    Text(
+                        text = uiState.errorMessage,
+                        color = Color(0xFFD32F2F), // Dark red text
+                        modifier = Modifier.padding(12.dp),
+                        fontSize = 14.sp,
+                        fontWeight = FontWeight.Medium
+                    )
+                }
+            }
+
+            Spacer(modifier = Modifier.height(16.dp))
 
             Column(modifier = Modifier.fillMaxWidth()) {
                 Text(
@@ -92,22 +113,19 @@ fun LoginScreen(
                     fontSize = 14.sp,
                     modifier = Modifier.padding(bottom = 8.dp)
                 )
-                OutlinedTextField(
+                AppTextField(
                     value = uiState.email,
                     onValueChange = { onEvent(LoginEvent.EmailChanged(it)) },
-                    placeholder = { Text("example@gmail.com", color = Color.LightGray) },
-                    modifier = Modifier.fillMaxWidth(),
-                    shape = RoundedCornerShape(8.dp),
+                    placeholder = "example@gmail.com",
+                    leadingIcon = Icons.Outlined.Email,
+                    error = uiState.emailError,
+                    enabled = !uiState.isLoading,
                     keyboardOptions = KeyboardOptions(
                         keyboardType = KeyboardType.Email,
                         imeAction = ImeAction.Next
                     ),
                     keyboardActions = KeyboardActions(
                         onNext = { focusManager.moveFocus(FocusDirection.Down) }
-                    ),
-                    colors = OutlinedTextFieldDefaults.colors(
-                        unfocusedBorderColor = Color.LightGray,
-                        focusedBorderColor = AppColors.Purple
                     )
                 )
 
@@ -119,29 +137,26 @@ fun LoginScreen(
                     fontSize = 14.sp,
                     modifier = Modifier.padding(bottom = 8.dp)
                 )
-                OutlinedTextField(
+                AppTextField(
                     value = uiState.password,
                     onValueChange = { onEvent(LoginEvent.PasswordChanged(it)) },
-                    placeholder = { Text("••••••••••", color = Color.LightGray) },
-                    modifier = Modifier.fillMaxWidth(),
-                    shape = RoundedCornerShape(8.dp),
-                    visualTransformation = PasswordVisualTransformation(),
+                    placeholder = "••••••••••",
+                    leadingIcon = Icons.Outlined.Lock,
+                    isPassword = true,
+                    error = uiState.passwordError,
+                    enabled = !uiState.isLoading,
                     keyboardOptions = KeyboardOptions(
                         keyboardType = KeyboardType.Password,
                         imeAction = ImeAction.Done
                     ),
                     keyboardActions = KeyboardActions(
-                        onDone = { 
+                        onDone = {
                             focusManager.clearFocus()
                             onEvent(LoginEvent.LoginClicked)
                         }
-                    ),
-                    colors = OutlinedTextFieldDefaults.colors(
-                        unfocusedBorderColor = Color.LightGray,
-                        focusedBorderColor = AppColors.Purple
                     )
                 )
-                
+
                 Text(
                     text = "Forgot Password?",
                     color = AppColors.Purple,
@@ -152,20 +167,31 @@ fun LoginScreen(
                         .padding(top = 8.dp)
                 )
             }
+
             Spacer(modifier = Modifier.height(32.dp))
+
             Button(
                 onClick = { onEvent(LoginEvent.LoginClicked) },
+                enabled = !uiState.isLoading,
                 modifier = Modifier
                     .fillMaxWidth()
                     .height(56.dp),
                 shape = RoundedCornerShape(12.dp),
                 colors = ButtonDefaults.buttonColors(containerColor = AppColors.Purple)
             ) {
-                Text("Sign In", fontWeight = FontWeight.Bold, fontSize = 16.sp)
+                if (uiState.isLoading) {
+                    CircularProgressIndicator(
+                        color = Color.White,
+                        modifier = Modifier.size(24.dp),
+                        strokeWidth = 3.dp
+                    )
+                } else {
+                    Text("Sign In", fontWeight = FontWeight.Bold, fontSize = 16.sp, color = Color.White)
+                }
             }
 
             Spacer(modifier = Modifier.height(16.dp))
-            
+
             Row(
                 verticalAlignment = Alignment.CenterVertically,
                 modifier = Modifier.fillMaxWidth()
@@ -183,6 +209,7 @@ fun LoginScreen(
 
             OutlinedButton(
                 onClick = { onEvent(LoginEvent.RegisterClicked) },
+                enabled = !uiState.isLoading,
                 modifier = Modifier
                     .fillMaxWidth()
                     .height(56.dp),

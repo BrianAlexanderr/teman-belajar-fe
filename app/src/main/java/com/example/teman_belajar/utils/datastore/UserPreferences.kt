@@ -4,6 +4,7 @@ import android.content.Context
 import androidx.datastore.core.DataStore
 import androidx.datastore.preferences.core.Preferences
 import androidx.datastore.preferences.core.booleanPreferencesKey
+import androidx.datastore.preferences.core.stringPreferencesKey
 import androidx.datastore.preferences.core.edit
 import androidx.datastore.preferences.preferencesDataStore
 import kotlinx.coroutines.flow.Flow
@@ -16,14 +17,12 @@ class UserPreferences(private val context: Context) {
     companion object {
         val IS_FIRST_TIME = booleanPreferencesKey("is_first_time")
         val IS_LOGGED_IN = booleanPreferencesKey("is_logged_in")
+        val AUTH_TOKEN = stringPreferencesKey("auth_token")
+        val REFRESH_TOKEN = stringPreferencesKey("refresh_token")
     }
 
     val isFirstTimeFlow: Flow<Boolean> = context.dataStore.data.map { preferences ->
         preferences[IS_FIRST_TIME] ?: true
-    }
-
-    val isLoggedInFlow: Flow<Boolean> = context.dataStore.data.map { preferences ->
-        preferences[IS_LOGGED_IN] ?: false
     }
 
     suspend fun setFirstTimeCompleted() {
@@ -32,9 +31,24 @@ class UserPreferences(private val context: Context) {
         }
     }
 
-    suspend fun setLoggedIn(isLoggedIn: Boolean) {
+    val isLoggedInFlow: Flow<Boolean> = context.dataStore.data.map { preferences ->
+        preferences[IS_LOGGED_IN] ?: false
+    }
+
+    suspend fun setLoggedIn(isLoggedIn: Boolean, token: String? = null, refreshToken: String? = null) {
         context.dataStore.edit { preferences ->
             preferences[IS_LOGGED_IN] = isLoggedIn
+            if (token != null) {
+                preferences[AUTH_TOKEN] = token
+            } else {
+                preferences.remove(AUTH_TOKEN)
+            }
+
+            if (refreshToken != null) {
+                preferences[REFRESH_TOKEN] = refreshToken
+            } else {
+                preferences.remove(REFRESH_TOKEN)
+            }
         }
     }
 }
