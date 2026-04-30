@@ -112,7 +112,7 @@ fun AppTextField(
                 color = RegistrationColors.TextPrimary
             )
         )
-        
+
         if (error != null) {
             Row(
                 modifier = Modifier.padding(

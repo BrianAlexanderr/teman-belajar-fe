@@ -8,6 +8,16 @@ import retrofit2.converter.gson.GsonConverterFactory
 import retrofit2.http.Body
 import retrofit2.http.POST
 
+data class LoginRequest(
+    val email: String,
+    val password: String
+)
+
+data class LoginResponse(
+    val token: String,
+    val refreshToken: String
+)
+
 data class RegisterRequest(
     val firstName: String,
     val lastName: String,
@@ -34,6 +44,9 @@ fun isEmulator(): Boolean {
 interface ApiService {
     @POST("/api/auth/register")
     suspend fun register(@Body request: RegisterRequest): Response<RegisterResponse>
+
+    @POST("/api/auth/authenticate")
+    suspend fun login(@Body request: LoginRequest): Response<LoginResponse>
 
     companion object {
         private val BASE_URL: String
