@@ -8,8 +8,6 @@ import androidx.activity.viewModels
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.material3.CircularProgressIndicator
-import androidx.compose.material3.Text
-import androidx.compose.material3.Text
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
@@ -32,6 +30,7 @@ class MainActivity : ComponentActivity() {
     private val loginViewModel: LoginViewModel by viewModels()
     private val registrationViewModel: RegistrationViewModel by viewModels()
     private val homeViewModel: HomeViewModel by viewModels()
+    private val forgotPasswordViewModel: com.example.teman_belajar.forgotpassword.ForgotPasswordViewModel by viewModels()
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -81,6 +80,10 @@ class MainActivity : ComponentActivity() {
                                 navController.navigate("register")
                             }
 
+                            loginViewModel.onNavigateToForgotPassword = {
+                                navController.navigate("forgot_password")
+                            }
+
                             loginViewModel.onLoginSuccess = {
                                 navController.navigate("home") {
                                     popUpTo("login") { inclusive = true }
@@ -104,6 +107,19 @@ class MainActivity : ComponentActivity() {
                             RegistrationScreen(
                                 uiState = uiState,
                                 onEvent = registrationViewModel::onEvent
+                            )
+                        }
+
+                        composable("forgot_password") {
+                            val uiState by forgotPasswordViewModel.uiState.collectAsState()
+
+                            forgotPasswordViewModel.onNavigateBack = {
+                                navController.popBackStack()
+                            }
+
+                            com.example.teman_belajar.forgotpassword.ForgotPasswordScreen(
+                                uiState = uiState,
+                                onEvent = forgotPasswordViewModel::onEvent
                             )
                         }
                     }
