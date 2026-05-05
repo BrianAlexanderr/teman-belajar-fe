@@ -24,6 +24,8 @@ class LoginViewModel(application: Application) : AndroidViewModel(application) {
     var onNavigateToRegister: (() -> Unit)? = null
     var onLoginSuccess: (() -> Unit)? = null
 
+    var onNavigateToForgotPassword: (() -> Unit)? = null
+
     fun onEvent(event: LoginEvent) {
         when (event) {
             is LoginEvent.EmailChanged -> {
@@ -37,6 +39,9 @@ class LoginViewModel(application: Application) : AndroidViewModel(application) {
             }
             LoginEvent.RegisterClicked -> {
                 onNavigateToRegister?.invoke()
+            }
+            LoginEvent.ForgotPasswordClicked -> {
+                onNavigateToForgotPassword?.invoke()
             }
         }
     }
