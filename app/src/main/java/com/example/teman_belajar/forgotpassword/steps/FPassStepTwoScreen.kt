@@ -12,10 +12,12 @@ import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.SpanStyle
 import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.input.KeyboardCapitalization
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.withStyle
@@ -30,6 +32,8 @@ fun FPassStepTwoScreen(
     uiState: ForgotPasswordUiState,
     onEvent: (ForgotPasswordEvent) -> Unit
 ) {
+    val isCountdownActive = uiState.resendCountdown > 0
+
     Column(
         modifier = Modifier
             .fillMaxWidth()
@@ -52,46 +56,53 @@ fun FPassStepTwoScreen(
         BasicTextField(
             value = uiState.otpCode,
             onValueChange = { newValue ->
-                val numbersOnly = newValue.filter { it.isDigit() }
-
-                if (numbersOnly.length <= 6) {
-                    onEvent(ForgotPasswordEvent.OtpChanged(numbersOnly))
+                if (newValue.length <= 6 && newValue.all { it.isLetterOrDigit() }) {
+                    onEvent(ForgotPasswordEvent.OtpChanged(newValue.uppercase()))
                 }
             },
-            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.NumberPassword),
-            decorationBox = {
-                Row(
-                    horizontalArrangement = Arrangement.spacedBy(8.dp),
-                    modifier = Modifier.fillMaxWidth(),
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    repeat(6) { index ->
-                        val char = when {
-                            index < uiState.otpCode.length -> uiState.otpCode[index].toString()
-                            else -> ""
-                        }
+            keyboardOptions = KeyboardOptions(
+                keyboardType = KeyboardType.Password,
+                capitalization = KeyboardCapitalization.Characters
+            ),
+            decorationBox = { innerTextField ->
+                Box(contentAlignment = Alignment.Center) {
+                    Box(modifier = Modifier.alpha(0f)) {
+                        innerTextField()
+                    }
 
-                        val isFocused = index == uiState.otpCode.length
+                    Row(
+                        horizontalArrangement = Arrangement.spacedBy(8.dp),
+                        modifier = Modifier.fillMaxWidth(),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        repeat(6) { index ->
+                            val char = when {
+                                index < uiState.otpCode.length -> uiState.otpCode[index].toString()
+                                else -> ""
+                            }
 
-                        val borderColor = if (isFocused || char.isNotEmpty()) AppColors.Purple else Color.LightGray
+                            val isFocused = index == uiState.otpCode.length
 
-                        Box(
-                            modifier = Modifier
-                                .weight(1f)
-                                .aspectRatio(1f)
-                                .border(
-                                    width = if (isFocused) 2.dp else 1.dp,
-                                    color = borderColor,
-                                    shape = RoundedCornerShape(8.dp)
-                                ),
-                            contentAlignment = Alignment.Center
-                        ) {
-                            Text(
-                                text = char,
-                                fontSize = 24.sp,
-                                fontWeight = FontWeight.Bold,
-                                color = Color.Black
-                            )
+                            val borderColor = if (isFocused || char.isNotEmpty()) AppColors.Purple else Color.LightGray
+
+                            Box(
+                                modifier = Modifier
+                                    .weight(1f)
+                                    .aspectRatio(1f)
+                                    .border(
+                                        width = if (isFocused) 2.dp else 1.dp,
+                                        color = borderColor,
+                                        shape = RoundedCornerShape(8.dp)
+                                    ),
+                                contentAlignment = Alignment.Center
+                            ) {
+                                Text(
+                                    text = char,
+                                    fontSize = 24.sp,
+                                    fontWeight = FontWeight.Bold,
+                                    color = Color.Black
+                                )
+                            }
                         }
                     }
                 }
@@ -100,10 +111,17 @@ fun FPassStepTwoScreen(
 
         Spacer(modifier = Modifier.height(24.dp))
 
-        TextButton(onClick = { /* resend otp */ }) {
+        TextButton(
+            onClick = { onEvent(ForgotPasswordEvent.ResendCodeClicked) },
+            enabled = !isCountdownActive
+        ) {
             Text(
-                text = "Didn't Receive code? Resend Code",
-                color = AppColors.Purple,
+                text = if (isCountdownActive) {
+                    "Resend code in ${uiState.resendCountdown}s"
+                } else {
+                    "Didn't Receive code? Resend Code"
+                },
+                color = if (isCountdownActive) Color.Gray else AppColors.Purple,
                 fontSize = 12.sp,
                 fontWeight = FontWeight.Bold
             )

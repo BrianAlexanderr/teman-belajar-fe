@@ -2,10 +2,18 @@ package com.example.teman_belajar.forgotpassword
 
 import android.util.Patterns
 import androidx.lifecycle.ViewModel
+import androidx.lifecycle.viewModelScope
+import com.example.teman_belajar.fetch.ApiService
+import com.example.teman_belajar.fetch.ChangePasswordRequest
+import com.example.teman_belajar.fetch.ForgotPasswordRequest
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
+import kotlinx.coroutines.launch
+import org.json.JSONObject
 
 data class ForgotPasswordUiState(
     val currentStep: Int = 1,
@@ -15,7 +23,9 @@ data class ForgotPasswordUiState(
     val confirmPassword: String = "",
     val emailError: String? = null,
     val passwordError: String? = null,
-    val confirmPasswordError: String? = null
+    val confirmPasswordError: String? = null,
+    val resendCountdown: Int = 0,
+    val isLoading: Boolean = false
 )
 
 sealed class ForgotPasswordEvent {
@@ -28,15 +38,19 @@ sealed class ForgotPasswordEvent {
     data class ConfirmPasswordChanged(val value: String) : ForgotPasswordEvent()
     object ResetPasswordClicked : ForgotPasswordEvent()
     object SuccessDoneClicked : ForgotPasswordEvent()
+    object ResendCodeClicked : ForgotPasswordEvent()
 }
 
 class ForgotPasswordViewModel : ViewModel() {
     private val _uiState = MutableStateFlow(ForgotPasswordUiState())
     val uiState: StateFlow<ForgotPasswordUiState> = _uiState.asStateFlow()
 
+    private var countdownJob: Job? = null
+
     var onNavigateBack: (() -> Unit)? = null
 
     fun resetState() {
+        stopCountdown()
         _uiState.update {
             ForgotPasswordUiState()
         }
@@ -57,7 +71,7 @@ class ForgotPasswordViewModel : ViewModel() {
                 _uiState.update { it.copy(confirmPassword = event.value, confirmPasswordError = null) }
             }
             ForgotPasswordEvent.SendCodeClicked -> {
-                validateStep1Email()
+                validateAndSendOtp()
             }
             ForgotPasswordEvent.VerifyClicked -> {
                 _uiState.update { it.copy(currentStep = 3) }
@@ -69,8 +83,14 @@ class ForgotPasswordViewModel : ViewModel() {
                 resetState()
                 onNavigateBack?.invoke()
             }
+            ForgotPasswordEvent.ResendCodeClicked -> {
+                if (_uiState.value.resendCountdown <= 0) {
+                    validateAndSendOtp()
+                }
+            }
             ForgotPasswordEvent.BackClicked -> {
                 if (_uiState.value.currentStep in 2..3) {
+                    if (_uiState.value.currentStep == 2) stopCountdown()
                     _uiState.update { it.copy(currentStep = it.currentStep - 1) }
                 } else if (_uiState.value.currentStep == 1) {
                     resetState()
@@ -80,7 +100,23 @@ class ForgotPasswordViewModel : ViewModel() {
         }
     }
 
-    private fun validateStep1Email() {
+    private fun startResendCountdown() {
+        stopCountdown()
+        countdownJob = viewModelScope.launch {
+            _uiState.update { it.copy(resendCountdown = 60) }
+            while (_uiState.value.resendCountdown > 0) {
+                delay(1000)
+                _uiState.update { it.copy(resendCountdown = it.resendCountdown - 1) }
+            }
+        }
+    }
+
+    private fun stopCountdown() {
+        countdownJob?.cancel()
+        _uiState.update { it.copy(resendCountdown = 0) }
+    }
+
+    private fun validateAndSendOtp() {
         val state = _uiState.value
         val emailError = when {
             state.email.isBlank() -> "Email is required"
@@ -91,7 +127,29 @@ class ForgotPasswordViewModel : ViewModel() {
         if (emailError != null) {
             _uiState.update { it.copy(emailError = emailError) }
         } else {
-            _uiState.update { it.copy(currentStep = 2, emailError = null) }
+            viewModelScope.launch {
+                _uiState.update { it.copy(isLoading = true, emailError = null) }
+                try {
+                    val response = ApiService.create().forgotPass(ForgotPasswordRequest(state.email))
+                    if (response.isSuccessful) {
+                        _uiState.update { it.copy(currentStep = 2, isLoading = false) }
+                        startResendCountdown()
+                    } else {
+                        val errorBody = response.errorBody()?.string()
+                        val errorMessage = try {
+                            val jsonObject = JSONObject(errorBody ?: "")
+                            jsonObject.optString("message").takeIf { it.isNotEmpty() }
+                                ?: jsonObject.optString("msg").takeIf { it.isNotEmpty() }
+                                ?: "Failed to send code. Please try again."
+                        } catch (e: Exception) {
+                            "Failed to send code. Please try again."
+                        }
+                        _uiState.update { it.copy(isLoading = false, emailError = errorMessage) }
+                    }
+                } catch (e: Exception) {
+                    _uiState.update { it.copy(isLoading = false, emailError = "Check your internet connection") }
+                }
+            }
         }
     }
 
@@ -118,14 +176,43 @@ class ForgotPasswordViewModel : ViewModel() {
                     confirmPasswordError = confirmPasswordError
                 )
             }
-        } else {
-            _uiState.update {
-                it.copy(
-                    currentStep = 4,
-                    passwordError = null,
-                    confirmPasswordError = null
+            return
+        }
+
+        viewModelScope.launch {
+            _uiState.update { it.copy(isLoading = true, passwordError = null, confirmPasswordError = null) }
+            try {
+                val request = ChangePasswordRequest(
+                    email = state.email,
+                    newPassword = state.newPassword,
+                    otp = state.otpCode
                 )
+                
+                val response = ApiService.create().changePass(request)
+                
+                if (response.isSuccessful) {
+                    _uiState.update { it.copy(currentStep = 4, isLoading = false) }
+                    stopCountdown()
+                } else {
+                    val errorBody = response.errorBody()?.string()
+                    val errorMessage = try {
+                        val jsonObject = JSONObject(errorBody ?: "")
+                        jsonObject.optString("message").takeIf { it.isNotEmpty() }
+                            ?: jsonObject.optString("msg").takeIf { it.isNotEmpty() }
+                            ?: "Invalid OTP or expired. Please check again."
+                    } catch (e: Exception) {
+                        "Failed to reset password."
+                    }
+                    _uiState.update { it.copy(isLoading = false, passwordError = errorMessage) }
+                }
+            } catch (e: Exception) {
+                _uiState.update { it.copy(isLoading = false, passwordError = "Network error. Please try again.") }
             }
         }
+    }
+
+    override fun onCleared() {
+        super.onCleared()
+        stopCountdown()
     }
 }

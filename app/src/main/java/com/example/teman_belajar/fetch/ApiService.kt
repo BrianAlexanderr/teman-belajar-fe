@@ -25,9 +25,19 @@ data class RegisterRequest(
     val password: String
 )
 
-data class RegisterResponse(
-    val msg: String,
+data class GeneralResponse(
+    val message: String,
     val timeStamp: String
+)
+
+data class ForgotPasswordRequest(
+    val email: String
+)
+
+data class ChangePasswordRequest(
+    val email : String,
+    val newPassword : String,
+    val otp : String
 )
 
 fun isEmulator(): Boolean {
@@ -43,10 +53,16 @@ fun isEmulator(): Boolean {
 
 interface ApiService {
     @POST("/api/auth/register")
-    suspend fun register(@Body request: RegisterRequest): Response<RegisterResponse>
+    suspend fun register(@Body request: RegisterRequest): Response<GeneralResponse>
 
     @POST("/api/auth/authenticate")
     suspend fun login(@Body request: LoginRequest): Response<LoginResponse>
+
+    @POST("/api/auth/send-otp")
+    suspend fun forgotPass(@Body request: ForgotPasswordRequest) : Response<GeneralResponse>
+
+    @POST("/api/auth/change-password")
+    suspend fun changePass(@Body request: ChangePasswordRequest) : Response<GeneralResponse>
 
     companion object {
         private val BASE_URL: String

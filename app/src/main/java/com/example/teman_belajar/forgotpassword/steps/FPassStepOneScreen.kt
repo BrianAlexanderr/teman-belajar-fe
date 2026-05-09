@@ -8,6 +8,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.Email
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
@@ -58,6 +59,7 @@ fun FPassStepOneScreen(
                 onValueChange = { onEvent(ForgotPasswordEvent.EmailChanged(it)) },
                 placeholder = "john@example.com",
                 leadingIcon = Icons.Outlined.Email,
+                enabled = !uiState.isLoading,
                 keyboardOptions = KeyboardOptions(
                     keyboardType = KeyboardType.Email,
                     imeAction = ImeAction.Done
@@ -65,7 +67,9 @@ fun FPassStepOneScreen(
                 keyboardActions = KeyboardActions(
                     onDone = {
                         focusManager.clearFocus()
-                        onEvent(ForgotPasswordEvent.SendCodeClicked)
+                        if (!uiState.isLoading) {
+                            onEvent(ForgotPasswordEvent.SendCodeClicked)
+                        }
                     }
                 )
             )
@@ -84,18 +88,30 @@ fun FPassStepOneScreen(
 
         Button(
             onClick = { onEvent(ForgotPasswordEvent.SendCodeClicked) },
+            enabled = !uiState.isLoading,
             modifier = Modifier
                 .fillMaxWidth()
                 .height(56.dp),
             shape = RoundedCornerShape(12.dp),
-            colors = ButtonDefaults.buttonColors(containerColor = AppColors.Purple)
-        ) {
-            Text(
-                text = "Send Code",
-                fontWeight = FontWeight.Bold,
-                fontSize = 16.sp,
-                color = Color.White
+            colors = ButtonDefaults.buttonColors(
+                containerColor = AppColors.Purple,
+                disabledContainerColor = AppColors.Purple.copy(alpha = 0.5f)
             )
+        ) {
+            if (uiState.isLoading) {
+                CircularProgressIndicator(
+                    modifier = Modifier.size(24.dp),
+                    color = Color.White,
+                    strokeWidth = 2.dp
+                )
+            } else {
+                Text(
+                    text = "Send Code",
+                    fontWeight = FontWeight.Bold,
+                    fontSize = 16.sp,
+                    color = Color.White
+                )
+            }
         }
     }
 }

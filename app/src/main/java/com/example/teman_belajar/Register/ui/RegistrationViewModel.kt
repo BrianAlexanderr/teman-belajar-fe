@@ -4,13 +4,12 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.teman_belajar.fetch.ApiService
 import com.example.teman_belajar.fetch.RegisterRequest
-import com.example.teman_belajar.fetch.RegisterResponse
-import com.google.gson.Gson
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
+import org.json.JSONObject
 
 class RegistrationViewModel(
     private val apiService: ApiService = ApiService.create()
@@ -133,19 +132,23 @@ class RegistrationViewModel(
 
                     println("SERVER_ERROR_SPY: $errorJson")
 
-                    val errorMessage =
-                        try {
-                            Gson().fromJson(errorJson, RegisterResponse::class.java).msg
-                        } catch (_: Exception) {
-                            "Registration failed"
-                        }
+                    val errorMessage = try {
+                        val jsonObject = JSONObject(errorJson ?: "")
+                        jsonObject.optString("message").takeIf { it.isNotBlank() }
+                            ?: jsonObject.optString("msg").takeIf { it.isNotBlank() }
+                            ?: jsonObject.optString("error").takeIf { it.isNotBlank() }
+                            ?: "Registration failed"
+                    } catch (e: Exception) {
+                        "Registration failed"
+                    }
+
                     _uiState.update {
                         it.copy(isLoading = false, emailError = errorMessage)
                     }
                 }
-            } catch (_: Exception) {
+            } catch (e: Exception) {
                 _uiState.update {
-                    it.copy(isLoading = false, termsError = "Connection failed. Please check your internet.")
+                    it.copy(isLoading = false, termsError = "Connection failed: ${e.localizedMessage}")
                 }
             }
         }
