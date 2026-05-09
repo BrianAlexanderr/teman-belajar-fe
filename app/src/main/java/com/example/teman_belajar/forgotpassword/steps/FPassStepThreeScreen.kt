@@ -43,7 +43,8 @@ fun FPassStepThreeScreen(
                 onValueChange = { onEvent(ForgotPasswordEvent.NewPasswordChanged(it)) },
                 placeholder = "Enter New Password",
                 leadingIcon = Icons.Outlined.Lock,
-                isPassword = true
+                isPassword = true,
+                enabled = !uiState.isLoading
             )
 
             if (uiState.passwordError != null) {
@@ -66,7 +67,8 @@ fun FPassStepThreeScreen(
                 onValueChange = { onEvent(ForgotPasswordEvent.ConfirmPasswordChanged(it)) },
                 placeholder = "Confirm New Password",
                 leadingIcon = Icons.Outlined.Lock,
-                isPassword = true
+                isPassword = true,
+                enabled = !uiState.isLoading
             )
 
             if (uiState.confirmPasswordError != null) {
@@ -83,13 +85,25 @@ fun FPassStepThreeScreen(
 
         Button(
             onClick = { onEvent(ForgotPasswordEvent.ResetPasswordClicked) },
+            enabled = !uiState.isLoading,
             modifier = Modifier
                 .fillMaxWidth()
                 .height(56.dp),
             shape = RoundedCornerShape(12.dp),
-            colors = ButtonDefaults.buttonColors(containerColor = AppColors.Purple)
+            colors = ButtonDefaults.buttonColors(
+                containerColor = AppColors.Purple,
+                disabledContainerColor = AppColors.Purple.copy(alpha = 0.5f)
+            )
         ) {
-            Text("Reset Password", fontWeight = FontWeight.Bold, fontSize = 16.sp)
+            if (uiState.isLoading) {
+                CircularProgressIndicator(
+                    modifier = Modifier.size(24.dp),
+                    color = Color.White,
+                    strokeWidth = 2.dp
+                )
+            } else {
+                Text("Reset Password", fontWeight = FontWeight.Bold, fontSize = 16.sp)
+            }
         }
     }
 }
