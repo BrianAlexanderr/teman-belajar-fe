@@ -6,6 +6,7 @@ import androidx.lifecycle.viewModelScope
 import com.example.teman_belajar.fetch.ApiService
 import com.example.teman_belajar.fetch.ChangePasswordRequest
 import com.example.teman_belajar.fetch.ForgotPasswordRequest
+import com.example.teman_belajar.fetch.verifyOTPRequest
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -25,7 +26,9 @@ data class ForgotPasswordUiState(
     val passwordError: String? = null,
     val confirmPasswordError: String? = null,
     val resendCountdown: Int = 0,
-    val isLoading: Boolean = false
+    val isLoading: Boolean = false,
+    val isResending: Boolean = false,
+    val resetToken: String = ""
 )
 
 sealed class ForgotPasswordEvent {
@@ -62,7 +65,7 @@ class ForgotPasswordViewModel : ViewModel() {
                 _uiState.update { it.copy(email = event.value, emailError = null) }
             }
             is ForgotPasswordEvent.OtpChanged -> {
-                _uiState.update { it.copy(otpCode = event.value) }
+                _uiState.update { it.copy(otpCode = event.value, passwordError = null) }
             }
             is ForgotPasswordEvent.NewPasswordChanged -> {
                 _uiState.update { it.copy(newPassword = event.value, passwordError = null) }
@@ -74,7 +77,7 @@ class ForgotPasswordViewModel : ViewModel() {
                 validateAndSendOtp()
             }
             ForgotPasswordEvent.VerifyClicked -> {
-                _uiState.update { it.copy(currentStep = 3) }
+                verifyOtp()
             }
             ForgotPasswordEvent.ResetPasswordClicked -> {
                 validateStep3Password()
@@ -84,14 +87,14 @@ class ForgotPasswordViewModel : ViewModel() {
                 onNavigateBack?.invoke()
             }
             ForgotPasswordEvent.ResendCodeClicked -> {
-                if (_uiState.value.resendCountdown <= 0) {
-                    validateAndSendOtp()
+                if (_uiState.value.resendCountdown <= 0 && !_uiState.value.isResending) {
+                    resendOtp()
                 }
             }
             ForgotPasswordEvent.BackClicked -> {
                 if (_uiState.value.currentStep in 2..3) {
                     if (_uiState.value.currentStep == 2) stopCountdown()
-                    _uiState.update { it.copy(currentStep = it.currentStep - 1) }
+                    _uiState.update { it.copy(currentStep = it.currentStep - 1, passwordError = null) }
                 } else if (_uiState.value.currentStep == 1) {
                     resetState()
                     onNavigateBack?.invoke()
@@ -153,6 +156,60 @@ class ForgotPasswordViewModel : ViewModel() {
         }
     }
 
+    private fun resendOtp() {
+        val state = _uiState.value
+        viewModelScope.launch {
+            _uiState.update { it.copy(isResending = true, passwordError = null) }
+            try {
+                val response = ApiService.create().forgotPass(ForgotPasswordRequest(state.email))
+                if (response.isSuccessful) {
+                    _uiState.update { it.copy(isResending = false) }
+                    startResendCountdown()
+                } else {
+                    val errorBody = response.errorBody()?.string()
+                    val errorMessage = try {
+                        val jsonObject = JSONObject(errorBody ?: "")
+                        jsonObject.optString("message").takeIf { it.isNotEmpty() }
+                            ?: jsonObject.optString("msg").takeIf { it.isNotEmpty() }
+                            ?: "Failed to resend code."
+                    } catch (e: Exception) {
+                        "Failed to resend code."
+                    }
+                    _uiState.update { it.copy(isResending = false, passwordError = errorMessage) }
+                }
+            } catch (e: Exception) {
+                _uiState.update { it.copy(isResending = false, passwordError = "Check your internet connection") }
+            }
+        }
+    }
+
+    private fun verifyOtp() {
+        val state = _uiState.value
+        viewModelScope.launch {
+            _uiState.update { it.copy(isLoading = true, passwordError = null) }
+            try {
+                val response = ApiService.create().verifyOTP(verifyOTPRequest(state.email, state.otpCode))
+                if (response.isSuccessful) {
+                    val token = response.body()?.token ?: ""
+                    _uiState.update { it.copy(currentStep = 3, isLoading = false, resetToken = token) }
+                } else {
+                    val errorBody = response.errorBody()?.string()
+                    val errorMessage = try {
+                        val jsonObject = JSONObject(errorBody ?: "")
+                        jsonObject.optString("message").takeIf { it.isNotEmpty() }
+                            ?: jsonObject.optString("msg").takeIf { it.isNotEmpty() }
+                            ?: "Invalid OTP code."
+                    } catch (e: Exception) {
+                        "Invalid OTP code."
+                    }
+                    _uiState.update { it.copy(isLoading = false, passwordError = errorMessage) }
+                }
+            } catch (e: Exception) {
+                _uiState.update { it.copy(isLoading = false, passwordError = "Check your internet connection") }
+            }
+        }
+    }
+
     private fun validateStep3Password() {
         val state = _uiState.value
 
@@ -185,7 +242,7 @@ class ForgotPasswordViewModel : ViewModel() {
                 val request = ChangePasswordRequest(
                     email = state.email,
                     newPassword = state.newPassword,
-                    otp = state.otpCode
+                    resetToken = state.resetToken
                 )
                 
                 val response = ApiService.create().changePass(request)
@@ -199,7 +256,7 @@ class ForgotPasswordViewModel : ViewModel() {
                         val jsonObject = JSONObject(errorBody ?: "")
                         jsonObject.optString("message").takeIf { it.isNotEmpty() }
                             ?: jsonObject.optString("msg").takeIf { it.isNotEmpty() }
-                            ?: "Invalid OTP or expired. Please check again."
+                            ?: "Failed to reset password."
                     } catch (e: Exception) {
                         "Failed to reset password."
                     }
