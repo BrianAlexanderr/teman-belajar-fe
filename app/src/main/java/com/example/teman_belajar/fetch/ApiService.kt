@@ -37,8 +37,18 @@ data class ForgotPasswordRequest(
 data class ChangePasswordRequest(
     val email : String,
     val newPassword : String,
+    val resetToken : String
+)
+
+data class verifyOTPRequest(
+    val email : String,
     val otp : String
 )
+
+data class verifyOTPResponse(
+    val token : String
+)
+
 
 fun isEmulator(): Boolean {
     return (
@@ -63,6 +73,9 @@ interface ApiService {
 
     @POST("/api/auth/change-password")
     suspend fun changePass(@Body request: ChangePasswordRequest) : Response<GeneralResponse>
+
+    @POST("/api/auth/verify-otp")
+    suspend fun verifyOTP(@Body request: verifyOTPRequest) : Response<verifyOTPResponse>
 
     companion object {
         private val BASE_URL: String
