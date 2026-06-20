@@ -1,4 +1,4 @@
-package com.example.teman_belajar.Register.ui.steps
+package com.example.teman_belajar.register.ui.steps
 
 import androidx.compose.foundation.layout.*
 import androidx.compose.material3.MaterialTheme
@@ -9,9 +9,9 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
-import com.example.teman_belajar.Register.ui.RegistrationEvent
-import com.example.teman_belajar.Register.ui.components.PrimaryButton
-import com.example.teman_belajar.Register.ui.components.SuccessCheckmark
+import com.example.teman_belajar.register.ui.RegistrationEvent
+import com.example.teman_belajar.register.ui.components.PrimaryButton
+import com.example.teman_belajar.register.ui.components.SuccessCheckmark
 import com.example.teman_belajar.theme.RegistrationColors
 import com.example.teman_belajar.theme.RegistrationSpacing
 

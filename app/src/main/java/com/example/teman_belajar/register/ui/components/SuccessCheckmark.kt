@@ -1,4 +1,4 @@
-package com.example.teman_belajar.Register.ui.components
+package com.example.teman_belajar.register.ui.components
 
 import androidx.compose.animation.core.*
 import androidx.compose.foundation.background

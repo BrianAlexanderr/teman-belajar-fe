@@ -1,4 +1,4 @@
-package com.example.teman_belajar.Register.ui
+package com.example.teman_belajar.register.ui
 
 import androidx.compose.animation.*
 import androidx.compose.foundation.background
@@ -15,12 +15,12 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
-import com.example.teman_belajar.Register.ui.components.BackgroundDecoration
-import com.example.teman_belajar.Register.ui.components.StepItem
-import com.example.teman_belajar.Register.ui.components.StepProgressIndicator
-import com.example.teman_belajar.Register.ui.steps.StepOneScreen
-import com.example.teman_belajar.Register.ui.steps.StepThreeScreen
-import com.example.teman_belajar.Register.ui.steps.StepTwoScreen
+import com.example.teman_belajar.register.ui.components.BackgroundDecoration
+import com.example.teman_belajar.register.ui.components.StepItem
+import com.example.teman_belajar.register.ui.components.StepProgressIndicator
+import com.example.teman_belajar.register.ui.steps.StepOneScreen
+import com.example.teman_belajar.register.ui.steps.StepThreeScreen
+import com.example.teman_belajar.register.ui.steps.StepTwoScreen
 import com.example.teman_belajar.theme.RegistrationColors
 import com.example.teman_belajar.theme.RegistrationSpacing
 

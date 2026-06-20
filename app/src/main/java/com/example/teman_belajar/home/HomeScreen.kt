@@ -1,5 +1,6 @@
 package com.example.teman_belajar.home
 
+import android.widget.Toast
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -22,16 +23,24 @@ import androidx.compose.material.icons.outlined.DeleteForever
 import androidx.compose.material.icons.outlined.Quiz
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.Outline
+import androidx.compose.ui.graphics.Path
+import androidx.compose.ui.graphics.Shape
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.unit.Density
+import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.example.teman_belajar.Register.ui.components.BackgroundDecoration
+import com.example.teman_belajar.register.ui.components.BackgroundDecoration
 import com.example.teman_belajar.components.*
 import com.example.teman_belajar.theme.AppColors
 
@@ -40,6 +49,22 @@ fun HomeScreen(
     uiState: HomeUiState,
     onEvent: (HomeEvent) -> Unit
 ) {
+    val context = LocalContext.current
+
+    LaunchedEffect(uiState.errorMessage) {
+        uiState.errorMessage?.let { errorMsg ->
+            Toast.makeText(context, errorMsg, Toast.LENGTH_SHORT).show()
+            onEvent(HomeEvent.ClearError)
+        }
+    }
+
+    LaunchedEffect(uiState.successMessage) {
+        uiState.successMessage?.let { successMsg ->
+            Toast.makeText(context, successMsg, Toast.LENGTH_SHORT).show()
+            onEvent(HomeEvent.ClearSuccessMessage)
+        }
+    }
+
     Scaffold(
         bottomBar = {
             Navbar(
@@ -75,9 +100,9 @@ fun HomeScreen(
             LazyVerticalGrid(
                 columns = GridCells.Fixed(3),
                 modifier = Modifier.fillMaxSize(),
-                contentPadding = PaddingValues(horizontal = 24.dp, vertical = 32.dp),
-                horizontalArrangement = Arrangement.spacedBy(16.dp),
-                verticalArrangement = Arrangement.spacedBy(20.dp)
+                contentPadding = PaddingValues(horizontal = 24.dp, vertical = 15.dp),
+                horizontalArrangement = Arrangement.spacedBy(24.dp),
+                verticalArrangement = Arrangement.spacedBy(28.dp)
             ) {
                 item(span = { GridItemSpan(3) }) {
                     Column {
@@ -141,22 +166,36 @@ fun HomeScreen(
                             text = "Folder Materi Saya",
                             fontSize = 20.sp,
                             fontWeight = FontWeight.Bold,
-                            color = AppColors.TextPrimary,
-                            modifier = Modifier.padding(bottom = 8.dp)
+                            color = AppColors.TextPrimary
                         )
                     }
                 }
 
-                items(uiState.folders) { folder ->
-                    FolderCard(
-                        folder = folder,
-                        onClick = { onEvent(HomeEvent.FolderClicked(folder)) },
-                        onOptionsClick = { onEvent(HomeEvent.ShowFolderOptions(folder)) }
-                    )
+                if (uiState.isLoading) {
+                    item(span = { GridItemSpan(3) }) {
+                        Box(
+                            modifier = Modifier.fillMaxWidth().padding(32.dp),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            CircularProgressIndicator(color = AppColors.Purple)
+                        }
+                    }
                 }
-                
-                item(span = { GridItemSpan(3) }) {
-                    Spacer(modifier = Modifier.height(80.dp))
+
+                else if (uiState.folders.isEmpty()) {
+                    item(span = { GridItemSpan(3) }) {
+                        EmptyFolderState()
+                    }
+                }
+
+                else {
+                    items(uiState.folders) { folder ->
+                        FolderCard(
+                            folder = folder,
+                            onClick = { onEvent(HomeEvent.FolderClicked(folder)) },
+                            onOptionsClick = { onEvent(HomeEvent.ShowFolderOptions(folder)) }
+                        )
+                    }
                 }
             }
         }
@@ -239,6 +278,37 @@ fun HomeScreen(
 }
 
 @Composable
+fun EmptyFolderState(modifier: Modifier = Modifier) {
+    Column(
+        modifier = modifier
+            .fillMaxWidth()
+            .padding(top = 16.dp, bottom = 100.dp),
+        horizontalAlignment = Alignment.CenterHorizontally
+    ) {
+        Icon(
+            imageVector = Icons.Outlined.CreateNewFolder,
+            contentDescription = "Folder Kosong",
+            tint = AppColors.TextSecondary.copy(alpha = 0.5f),
+            modifier = Modifier.size(80.dp)
+        )
+        Spacer(modifier = Modifier.height(16.dp))
+        Text(
+            text = "Belum ada folder materi",
+            fontSize = 18.sp,
+            fontWeight = FontWeight.SemiBold,
+            color = AppColors.TextPrimary.copy(alpha = 0.7f)
+        )
+        Text(
+            text = "Klik tombol + di bawah untuk membuat folder baru",
+            fontSize = 14.sp,
+            color = AppColors.TextSecondary,
+            modifier = Modifier.padding(top = 4.dp),
+            textAlign = androidx.compose.ui.text.style.TextAlign.Center
+        )
+    }
+}
+
+@Composable
 fun ActionCard(
     title: String,
     icon: ImageVector,
@@ -275,6 +345,43 @@ fun ActionCard(
     }
 }
 
+class FolderShape : Shape {
+    override fun createOutline(
+        size: Size,
+        layoutDirection: LayoutDirection,
+        density: Density
+    ): Outline {
+        val path = Path().apply {
+            val tabWidth = size.width * 0.45f
+            val tabHeight = size.height * 0.18f
+            val cornerRadius = with(density) { 12.dp.toPx() }
+
+            moveTo(0f, cornerRadius)
+            quadraticTo(0f, 0f, cornerRadius, 0f)
+
+            lineTo(tabWidth - cornerRadius, 0f)
+
+            cubicTo(
+                tabWidth, 0f,
+                tabWidth, tabHeight,
+                tabWidth + cornerRadius, tabHeight
+            )
+
+            lineTo(size.width - cornerRadius, tabHeight)
+            quadraticTo(size.width, tabHeight, size.width, tabHeight + cornerRadius)
+
+            lineTo(size.width, size.height - cornerRadius)
+            quadraticTo(size.width, size.height, size.width - cornerRadius, size.height)
+
+            lineTo(cornerRadius, size.height)
+            quadraticTo(0f, size.height, 0f, size.height - cornerRadius)
+
+            close()
+        }
+        return Outline.Generic(path)
+    }
+}
+
 @Composable
 fun FolderCard(
     folder: FolderItem,
@@ -291,12 +398,13 @@ fun FolderCard(
             modifier = Modifier
                 .fillMaxWidth()
                 .aspectRatio(1f)
-                .clip(RoundedCornerShape(16.dp))
-                .background(Color(0xFFD9D9D9))
-        )
-        
+                .clip(FolderShape())
+                .background(AppColors.Purple.copy(alpha = 0.5f))
+        ) {
+        }
+
         Spacer(modifier = Modifier.height(8.dp))
-        
+
         Row(
             modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.SpaceBetween,

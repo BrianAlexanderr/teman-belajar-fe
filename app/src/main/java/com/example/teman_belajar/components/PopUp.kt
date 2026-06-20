@@ -320,3 +320,27 @@ fun ConfirmationDialog(
         }
     }
 }
+
+@Composable
+fun SessionExpiredDialog(
+    onConfirm: () -> Unit
+) {
+    AlertDialog(
+        onDismissRequest = {
+            // Dibiarkan kosong agar user tidak bisa menutup dialog dengan klik di luar area
+        },
+        title = {
+            Text(text = "Sesi Berakhir")
+        },
+        text = {
+            Text(text = "Sesi Anda telah habis karena alasan keamanan. Silakan login kembali untuk melanjutkan.")
+        },
+        confirmButton = {
+            TextButton(
+                onClick = onConfirm
+            ) {
+                Text("Login Kembali")
+            }
+        }
+    )
+}

@@ -23,12 +23,8 @@ fun Navbar(
     onItemClick: (String) -> Unit
 ) {
     NavigationBar(
-        // Tinggi disesuaikan ke 64dp (pendek tapi tetap proporsional)
-        modifier = Modifier.height(64.dp),
         containerColor = MaterialTheme.colorScheme.surface,
-        tonalElevation = 0.dp,
-        // Menghilangkan insets bawaan agar konten tidak terdorong ke atas/terpotong
-        windowInsets = WindowInsets(0, 0, 0, 0)
+        tonalElevation = 0.dp
     ) {
         val navItems = listOf(
             Triple("home", "Home", Icons.Default.Home),

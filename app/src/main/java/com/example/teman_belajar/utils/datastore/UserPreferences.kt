@@ -17,6 +17,9 @@ class UserPreferences(private val context: Context) {
     companion object {
         val IS_FIRST_TIME = booleanPreferencesKey("is_first_time")
         val IS_LOGGED_IN = booleanPreferencesKey("is_logged_in")
+
+        val USER_NAME = stringPreferencesKey("user_name")
+
         val AUTH_TOKEN = stringPreferencesKey("auth_token")
         val REFRESH_TOKEN = stringPreferencesKey("refresh_token")
     }
@@ -35,9 +38,28 @@ class UserPreferences(private val context: Context) {
         preferences[IS_LOGGED_IN] ?: false
     }
 
-    suspend fun setLoggedIn(isLoggedIn: Boolean, token: String? = null, refreshToken: String? = null) {
+    val authTokenFlow: Flow<String?> = context.dataStore.data.map { preferences ->
+        preferences[AUTH_TOKEN]
+    }
+
+    val refreshTokenFlow: Flow<String?> = context.dataStore.data.map { preferences ->
+        preferences[REFRESH_TOKEN]
+    }
+
+    val userNameFlow: Flow<String?> = context.dataStore.data.map { preferences ->
+        preferences[USER_NAME]
+    }
+
+    suspend fun setLoggedIn(isLoggedIn: Boolean, userName: String? = null, token: String? = null, refreshToken: String? = null) {
         context.dataStore.edit { preferences ->
             preferences[IS_LOGGED_IN] = isLoggedIn
+
+            if (userName != null) {
+                preferences[USER_NAME] = userName
+            }else {
+                preferences.remove(USER_NAME)
+            }
+
             if (token != null) {
                 preferences[AUTH_TOKEN] = token
             } else {
