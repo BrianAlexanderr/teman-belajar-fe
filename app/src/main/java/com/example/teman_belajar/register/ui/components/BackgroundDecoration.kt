@@ -1,4 +1,4 @@
-package com.example.teman_belajar.Register.ui.components
+package com.example.teman_belajar.register.ui.components
 
 import androidx.compose.foundation.Canvas
 import androidx.compose.runtime.Composable

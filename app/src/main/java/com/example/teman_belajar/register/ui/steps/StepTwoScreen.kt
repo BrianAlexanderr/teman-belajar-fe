@@ -1,4 +1,4 @@
-package com.example.teman_belajar.Register.ui.steps
+package com.example.teman_belajar.register.ui.steps
 
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
@@ -18,11 +18,11 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.tooling.preview.Preview
-import com.example.teman_belajar.Register.ui.RegistrationEvent
-import com.example.teman_belajar.Register.ui.RegistrationUiState
-import com.example.teman_belajar.Register.ui.components.AppTextField
-import com.example.teman_belajar.Register.ui.components.PrimaryButton
-import com.example.teman_belajar.Register.ui.components.TermsCheckbox
+import com.example.teman_belajar.register.ui.RegistrationEvent
+import com.example.teman_belajar.register.ui.RegistrationUiState
+import com.example.teman_belajar.register.ui.components.AppTextField
+import com.example.teman_belajar.register.ui.components.PrimaryButton
+import com.example.teman_belajar.register.ui.components.TermsCheckbox
 import com.example.teman_belajar.theme.RegistrationColors
 import com.example.teman_belajar.theme.RegistrationSpacing
 

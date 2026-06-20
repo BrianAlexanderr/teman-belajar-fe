@@ -27,7 +27,7 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.teman_belajar.R
-import com.example.teman_belajar.Register.ui.components.AppTextField
+import com.example.teman_belajar.register.ui.components.AppTextField
 import com.example.teman_belajar.theme.AppColors
 
 data class LoginUiState(

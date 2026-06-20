@@ -1,4 +1,4 @@
-package com.example.teman_belajar.Register.ui
+package com.example.teman_belajar.register.ui
 data class RegistrationUiState(
     val firstName: String = "",
     val lastName: String = "",

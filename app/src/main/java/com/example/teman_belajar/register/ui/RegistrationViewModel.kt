@@ -1,9 +1,10 @@
-package com.example.teman_belajar.Register.ui
+package com.example.teman_belajar.register.ui
+import android.app.Application
 import android.util.Patterns
-import androidx.lifecycle.ViewModel
+import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.teman_belajar.fetch.ApiService
-import com.example.teman_belajar.fetch.RegisterRequest
+import com.example.teman_belajar.fetch.model.RegisterRequest
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -12,8 +13,10 @@ import kotlinx.coroutines.launch
 import org.json.JSONObject
 
 class RegistrationViewModel(
-    private val apiService: ApiService = ApiService.create()
-) : ViewModel() {
+    application: Application
+) : AndroidViewModel(application) {
+
+    private val apiService: ApiService = ApiService.create(application)
 
     private val _uiState = MutableStateFlow(RegistrationUiState())
     val uiState: StateFlow<RegistrationUiState> = _uiState.asStateFlow()
@@ -114,7 +117,7 @@ class RegistrationViewModel(
         viewModelScope.launch {
             _uiState.update { it.copy(isLoading = true, termsError = null, emailError = null) }
             val state = _uiState.value
-            
+
             try {
                 val request = RegisterRequest(
                     firstName = state.firstName.trim(),
@@ -122,9 +125,9 @@ class RegistrationViewModel(
                     email = state.email.trim().lowercase(),
                     password = state.password
                 )
-                
+
                 val response = apiService.register(request)
-                
+
                 if (response.isSuccessful) {
                     _uiState.update { it.copy(isLoading = false, currentStep = 3) }
                 } else {
@@ -138,7 +141,7 @@ class RegistrationViewModel(
                             ?: jsonObject.optString("msg").takeIf { it.isNotBlank() }
                             ?: jsonObject.optString("error").takeIf { it.isNotBlank() }
                             ?: "Registration failed"
-                    } catch (e: Exception) {
+                    } catch (_: Exception) {
                         "Registration failed"
                     }
 

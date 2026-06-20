@@ -1,53 +1,36 @@
 package com.example.teman_belajar.fetch
 
+import android.content.Context
 import android.os.Build
 import com.example.teman_belajar.BuildConfig
+import com.example.teman_belajar.fetch.model.ChangePasswordRequest
+import com.example.teman_belajar.fetch.model.CreateFolderRequest
+import com.example.teman_belajar.fetch.model.CreateFolderResponse
+import com.example.teman_belajar.fetch.model.ForgotPasswordRequest
+import com.example.teman_belajar.fetch.model.GeneralResponse
+import com.example.teman_belajar.fetch.model.LoginRequest
+import com.example.teman_belajar.fetch.model.LoginResponse
+import com.example.teman_belajar.fetch.model.RefreshTokenRequst
+import com.example.teman_belajar.fetch.model.RegisterRequest
+import com.example.teman_belajar.fetch.model.RenameFolderRequest
+import com.example.teman_belajar.fetch.model.UserFolderResponse
+import com.example.teman_belajar.fetch.model.VerifyOTPRequest
+import com.example.teman_belajar.fetch.model.VerifyOTPResponse
+import com.example.teman_belajar.utils.datastore.UserPreferences
+import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.runBlocking
+import okhttp3.Interceptor
+import okhttp3.OkHttpClient
 import retrofit2.Response
 import retrofit2.Retrofit
 import retrofit2.converter.gson.GsonConverterFactory
 import retrofit2.http.Body
+import retrofit2.http.DELETE
+import retrofit2.http.GET
 import retrofit2.http.POST
-
-data class LoginRequest(
-    val email: String,
-    val password: String
-)
-
-data class LoginResponse(
-    val token: String,
-    val refreshToken: String
-)
-
-data class RegisterRequest(
-    val firstName: String,
-    val lastName: String,
-    val email: String,
-    val password: String
-)
-
-data class GeneralResponse(
-    val message: String,
-    val timeStamp: String
-)
-
-data class ForgotPasswordRequest(
-    val email: String
-)
-
-data class ChangePasswordRequest(
-    val email : String,
-    val newPassword : String,
-    val resetToken : String
-)
-
-data class verifyOTPRequest(
-    val email : String,
-    val otp : String
-)
-
-data class verifyOTPResponse(
-    val token : String
-)
+import retrofit2.http.PUT
+import retrofit2.http.Path
+import java.util.UUID
 
 
 fun isEmulator(): Boolean {
@@ -59,6 +42,30 @@ fun isEmulator(): Boolean {
                     Build.PRODUCT.contains("sdk") ||
                     Build.PRODUCT.contains("emulator")
             )
+}
+
+class AuthInterceptor(private val userPreferences: UserPreferences) : Interceptor {
+    override fun intercept(chain: Interceptor.Chain): okhttp3.Response {
+
+        val token = runBlocking {
+            userPreferences.authTokenFlow.first()
+        }
+
+        val originalRequest = chain.request()
+        val requestBuilder = originalRequest.newBuilder()
+
+        if (!token.isNullOrEmpty()) {
+            requestBuilder.addHeader("Authorization", "Bearer $token")
+        }
+
+        val request = requestBuilder.build()
+        return chain.proceed(request)
+    }
+}
+
+interface TokenRefreshApi {
+    @POST("/api/auth/refresh-token")
+    fun refreshToken(@Body request: RefreshTokenRequst): retrofit2.Call<LoginResponse>
 }
 
 interface ApiService {
@@ -75,10 +82,22 @@ interface ApiService {
     suspend fun changePass(@Body request: ChangePasswordRequest) : Response<GeneralResponse>
 
     @POST("/api/auth/verify-otp")
-    suspend fun verifyOTP(@Body request: verifyOTPRequest) : Response<verifyOTPResponse>
+    suspend fun verifyOTP(@Body request: VerifyOTPRequest) : Response<VerifyOTPResponse>
+
+    @GET("/api/folders/user")
+    suspend fun getUserFolder() : Response<List<UserFolderResponse>>
+
+    @POST("/api/folders/create")
+    suspend fun createFolder(@Body request: CreateFolderRequest) : Response<CreateFolderResponse>
+
+    @PUT("/api/folders/update")
+    suspend fun renameFolder(@Body request: RenameFolderRequest) : Response<Unit>
+
+    @DELETE("/api/folders/{id}")
+    suspend fun deleteFolder(@Path("id") id: UUID) : Response<Unit>
 
     companion object {
-        private val BASE_URL: String
+        val BASE_URL: String
             get() {
                 return if (isEmulator()) {
                     BuildConfig.EMULATOR_IP
@@ -87,9 +106,20 @@ interface ApiService {
                 }
             }
 
-        fun create(): ApiService {
+        fun create(context: Context): ApiService {
+            val userPreferences = UserPreferences(context)
+
+            val authInterceptor = AuthInterceptor(userPreferences)
+            val tokenAuthenticator = TokenAuthenticator(userPreferences)
+
+            val client = OkHttpClient.Builder()
+                .addInterceptor(authInterceptor)
+                .authenticator(tokenAuthenticator)
+                .build()
+
             return Retrofit.Builder()
                 .baseUrl(BASE_URL)
+                .client(client)
                 .addConverterFactory(GsonConverterFactory.create())
                 .build()
                 .create(ApiService::class.java)

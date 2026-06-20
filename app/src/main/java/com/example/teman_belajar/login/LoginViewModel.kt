@@ -6,7 +6,7 @@ import android.util.Log
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.teman_belajar.fetch.ApiService
-import com.example.teman_belajar.fetch.LoginRequest
+import com.example.teman_belajar.fetch.model.LoginRequest
 import com.example.teman_belajar.utils.datastore.UserPreferences
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -15,7 +15,7 @@ import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 
 class LoginViewModel(application: Application) : AndroidViewModel(application) {
-    private val apiService: ApiService = ApiService.create()
+    private val apiService: ApiService = ApiService.create(application)
     private val userPreferences = UserPreferences(application)
 
     private val _uiState = MutableStateFlow(LoginUiState())
@@ -75,6 +75,7 @@ class LoginViewModel(application: Application) : AndroidViewModel(application) {
                 if (response.isSuccessful) {
                     val token = response.body()?.token
                     val refreshToken = response.body()?.refreshToken
+                    val userName = response.body()?.userName
                     _uiState.update {
                         it.copy(
                             isLoading = false,
@@ -84,7 +85,7 @@ class LoginViewModel(application: Application) : AndroidViewModel(application) {
                     }
 
                     viewModelScope.launch {
-                        userPreferences.setLoggedIn(true, token, refreshToken)
+                        userPreferences.setLoggedIn(true, userName, token, refreshToken)
                     }
 
                     onLoginSuccess?.invoke()

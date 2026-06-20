@@ -8,8 +8,12 @@ import androidx.activity.viewModels
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.navigation.compose.NavHost
@@ -17,12 +21,14 @@ import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import com.example.teman_belajar.login.LoginScreen
 import com.example.teman_belajar.login.LoginViewModel
-import com.example.teman_belajar.Register.ui.RegistrationScreen
-import com.example.teman_belajar.Register.ui.RegistrationViewModel
+import com.example.teman_belajar.register.ui.RegistrationScreen
+import com.example.teman_belajar.register.ui.RegistrationViewModel
+import com.example.teman_belajar.components.SessionExpiredDialog
 import com.example.teman_belajar.home.HomeScreen
 import com.example.teman_belajar.home.HomeViewModel
 import com.example.teman_belajar.splash.SplashScreen
 import com.example.teman_belajar.theme.TemanBelajarTheme
+import com.example.teman_belajar.utils.SessionManager
 
 class MainActivity : ComponentActivity() {
 
@@ -46,6 +52,26 @@ class MainActivity : ComponentActivity() {
                     }
                 } else {
                     val navController = rememberNavController()
+
+                    var isSessionExpiredDialogOpen by remember { mutableStateOf(false) }
+
+                    LaunchedEffect(Unit) {
+                        SessionManager.sessionExpiredEvent.collect {
+                            navController.navigate("login") {
+                                popUpTo(0) { inclusive = true }
+                                launchSingleTop = true
+                            }
+                            isSessionExpiredDialogOpen = true
+                        }
+                    }
+
+                    if (isSessionExpiredDialogOpen) {
+                        SessionExpiredDialog(
+                            onConfirm = {
+                                isSessionExpiredDialogOpen = false
+                            }
+                        )
+                    }
 
                     NavHost(
                         navController = navController,

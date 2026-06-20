@@ -21,7 +21,7 @@ import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.example.teman_belajar.Register.ui.components.AppTextField
+import com.example.teman_belajar.register.ui.components.AppTextField
 import com.example.teman_belajar.theme.AppColors
 import com.example.teman_belajar.forgotpassword.ForgotPasswordUiState
 import com.example.teman_belajar.forgotpassword.ForgotPasswordEvent
