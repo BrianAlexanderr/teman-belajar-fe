@@ -38,6 +38,8 @@ class MainActivity : ComponentActivity() {
     private val homeViewModel: HomeViewModel by viewModels()
     private val forgotPasswordViewModel: com.example.teman_belajar.forgotpassword.ForgotPasswordViewModel by viewModels()
 
+    private val folderDetailViewModel: com.example.teman_belajar.folderdetail.FolderDetailViewModel by viewModels()
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
@@ -94,9 +96,32 @@ class MainActivity : ComponentActivity() {
                                     popUpTo("home") { inclusive = true }
                                 }
                             }
+
+                            homeViewModel.onNavigateToFolderDetail = { id, name ->
+                                navController.navigate("folder_detail/$id/$name")
+                            }
+
                             HomeScreen(
                                 uiState = uiState,
                                 onEvent = homeViewModel::onEvent
+                            )
+                        }
+
+                        composable("folder_detail/{folderId}/{folderName}") { backStackEntry ->
+                            val folderId = backStackEntry.arguments?.getString("folderId") ?: ""
+                            val folderName = backStackEntry.arguments?.getString("folderName") ?: ""
+
+                            folderDetailViewModel.setFolderData(folderId, folderName)
+
+                            val uiState by folderDetailViewModel.uiState.collectAsState()
+
+                            folderDetailViewModel.onNavigateBack = {
+                                navController.popBackStack()
+                            }
+
+                            com.example.teman_belajar.folderdetail.FolderDetailScreen(
+                                uiState = uiState,
+                                onEvent = folderDetailViewModel::onEvent
                             )
                         }
 
