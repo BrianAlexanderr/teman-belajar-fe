@@ -68,6 +68,7 @@
         val uiState: StateFlow<HomeUiState> = _uiState.asStateFlow()
 
         var onNavigateToLogin: (() -> Unit)? = null
+        var onNavigateToFolderDetail: ((String, String) -> Unit)? = null
 
         init {
             fetchUserName()
@@ -197,7 +198,11 @@
                         )
                     }
                 }
-                is HomeEvent.FolderClicked -> {}
+
+                is HomeEvent.FolderClicked -> {
+                    onNavigateToFolderDetail?.invoke(event.folder.id.toString(), event.folder.name)
+                }
+
                 is HomeEvent.NewFolderNameChanged -> {
                     _uiState.update { it.copy(newFolderName = event.name) }
                 }
@@ -259,11 +264,9 @@
                 HomeEvent.DeleteFolderClicked -> {
                     _uiState.update { it.copy(isFolderOptionsVisible = false, isDeleteFolderDialogVisible = true) }
                 }
-
                 HomeEvent.ClearError -> {
                     _uiState.update { it.copy(errorMessage = null) }
                 }
-
                 HomeEvent.ClearSuccessMessage -> {
                     _uiState.update { it.copy(successMessage = null) }
                 }
