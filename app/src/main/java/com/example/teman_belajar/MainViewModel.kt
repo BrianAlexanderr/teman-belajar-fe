@@ -3,6 +3,7 @@ package com.example.teman_belajar
 import android.app.Application
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
+import com.example.teman_belajar.fetch.TokenManager
 import com.example.teman_belajar.utils.datastore.UserPreferences
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -28,6 +29,11 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
                 val result = withTimeoutOrNull(2000) {
                     val isFirstTime = userPreferences.isFirstTimeFlow.first()
                     val isLoggedIn = userPreferences.isLoggedInFlow.first()
+
+                    val accessToken = userPreferences.authTokenFlow.first()
+                    val refreshToken = userPreferences.refreshTokenFlow.first()
+
+                    TokenManager.initializeTokens(accessToken, refreshToken)
                     
                     if (isFirstTime) "splash"
                     else if (!isLoggedIn) "login"
@@ -35,7 +41,8 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
                 }
                 _startDestination.value = result ?: "login"
 
-            } catch (e: Exception) {
+            } catch (_: Exception) {
+                TokenManager.initializeTokens(null, null)
                 _startDestination.value = "login"
             }
         }

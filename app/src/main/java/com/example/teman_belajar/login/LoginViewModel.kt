@@ -6,6 +6,7 @@ import android.util.Log
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.teman_belajar.fetch.ApiService
+import com.example.teman_belajar.fetch.TokenManager
 import com.example.teman_belajar.fetch.model.LoginRequest
 import com.example.teman_belajar.utils.datastore.UserPreferences
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -76,6 +77,9 @@ class LoginViewModel(application: Application) : AndroidViewModel(application) {
                     val token = response.body()?.token
                     val refreshToken = response.body()?.refreshToken
                     val userName = response.body()?.userName
+
+                    TokenManager.initializeTokens(token, refreshToken)
+
                     _uiState.update {
                         it.copy(
                             isLoading = false,
