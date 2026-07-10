@@ -17,8 +17,6 @@ import com.example.teman_belajar.fetch.model.UserFolderResponse
 import com.example.teman_belajar.fetch.model.VerifyOTPRequest
 import com.example.teman_belajar.fetch.model.VerifyOTPResponse
 import com.example.teman_belajar.utils.datastore.UserPreferences
-import kotlinx.coroutines.flow.first
-import kotlinx.coroutines.runBlocking
 import okhttp3.Interceptor
 import okhttp3.OkHttpClient
 import retrofit2.Response
@@ -44,15 +42,13 @@ fun isEmulator(): Boolean {
             )
 }
 
-class AuthInterceptor(private val userPreferences: UserPreferences) : Interceptor {
+class AuthInterceptor() : Interceptor {
     override fun intercept(chain: Interceptor.Chain): okhttp3.Response {
-
-        val token = runBlocking {
-            userPreferences.authTokenFlow.first()
-        }
 
         val originalRequest = chain.request()
         val requestBuilder = originalRequest.newBuilder()
+
+        val token = TokenManager.accessToken
 
         if (!token.isNullOrEmpty()) {
             requestBuilder.addHeader("Authorization", "Bearer $token")
@@ -109,7 +105,7 @@ interface ApiService {
         fun create(context: Context): ApiService {
             val userPreferences = UserPreferences(context)
 
-            val authInterceptor = AuthInterceptor(userPreferences)
+            val authInterceptor = AuthInterceptor()
             val tokenAuthenticator = TokenAuthenticator(userPreferences)
 
             val client = OkHttpClient.Builder()
