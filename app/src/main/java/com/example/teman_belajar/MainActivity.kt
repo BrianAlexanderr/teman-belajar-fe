@@ -120,6 +120,7 @@ class MainActivity : ComponentActivity() {
                             }
 
                             com.example.teman_belajar.folderdetail.FolderDetailScreen(
+                                viewModel = folderDetailViewModel,
                                 uiState = uiState,
                                 onEvent = folderDetailViewModel::onEvent
                             )

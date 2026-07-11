@@ -37,6 +37,7 @@ import androidx.compose.material.icons.outlined.Psychology
 import androidx.compose.material.icons.outlined.UploadFile
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -119,10 +120,17 @@ fun openFile(context: Context, uriString: String?, mimeType: String) {
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun FolderDetailScreen(
+    viewModel: FolderDetailViewModel,
     uiState: FolderDetailUiState,
     onEvent: (FolderDetailEvent) -> Unit
 ) {
     val context = LocalContext.current
+
+    LaunchedEffect(Unit) {
+        viewModel.onOpenFile = { url, mimeType ->
+            openFile(context, url, mimeType)
+        }
+    }
 
     val takePictureLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.TakePicturePreview()
@@ -290,7 +298,11 @@ fun FolderDetailScreen(
 
         Spacer(modifier = Modifier.height(16.dp))
 
-        if (uiState.files.isEmpty()) {
+        if (uiState.isLoading && uiState.files.isEmpty()) {
+             Box(modifier = Modifier.fillMaxWidth().weight(1f), contentAlignment = Alignment.Center) {
+                CircularProgressIndicator(color = AppColors.Purple)
+            }
+        } else if (uiState.files.isEmpty()) {
             Box(modifier = Modifier.fillMaxWidth().weight(1f), contentAlignment = Alignment.Center) {
                 Text(text = "Belum ada materi.\nKlik '+' untuk menambahkan.", textAlign = TextAlign.Center, color = Color.Gray)
             }
@@ -305,7 +317,7 @@ fun FolderDetailScreen(
                 items(uiState.files) { file ->
                     val fileType = FileType.fromMimeType(file.mimeType)
                     Column(
-                        modifier = Modifier.fillMaxWidth().clickable { openFile(context, file.uri, file.mimeType) },
+                        modifier = Modifier.fillMaxWidth().clickable { onEvent(FolderDetailEvent.FileClicked(file)) },
                         horizontalAlignment = Alignment.CenterHorizontally
                     ) {
                         Box(
@@ -315,7 +327,7 @@ fun FolderDetailScreen(
                             when (fileType) {
                                 FileType.IMAGE -> {
                                     AsyncImage(
-                                        model = file.uri ?: R.drawable.file.toString(),
+                                        model = file.uri ?: R.drawable.file,
                                         contentDescription = null,
                                         modifier = Modifier.fillMaxSize(),
                                         contentScale = ContentScale.Crop,
@@ -328,6 +340,9 @@ fun FolderDetailScreen(
                                     Image(painter = painterResource(id = iconRes), contentDescription = "Doc Icon", modifier = Modifier.fillMaxSize(0.7f))
                                 }
                                 else -> Icon(imageVector = Icons.Outlined.UploadFile, contentDescription = null, tint = Color.Gray, modifier = Modifier.size(32.dp))
+                            }
+                            if (uiState.isLoading && uiState.selectedFile?.id == file.id) {
+                                CircularProgressIndicator(modifier = Modifier.size(24.dp), strokeWidth = 2.dp, color = AppColors.Purple)
                             }
                         }
                         Spacer(modifier = Modifier.height(8.dp))
