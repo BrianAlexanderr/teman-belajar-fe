@@ -2,34 +2,20 @@ package com.example.teman_belajar.fetch
 
 import android.content.Context
 import android.os.Build
+import android.util.Log
 import com.example.teman_belajar.BuildConfig
-import com.example.teman_belajar.fetch.model.ChangePasswordRequest
-import com.example.teman_belajar.fetch.model.CreateFolderRequest
-import com.example.teman_belajar.fetch.model.CreateFolderResponse
-import com.example.teman_belajar.fetch.model.ForgotPasswordRequest
-import com.example.teman_belajar.fetch.model.GeneralResponse
-import com.example.teman_belajar.fetch.model.LoginRequest
-import com.example.teman_belajar.fetch.model.LoginResponse
-import com.example.teman_belajar.fetch.model.RefreshTokenRequst
-import com.example.teman_belajar.fetch.model.RegisterRequest
-import com.example.teman_belajar.fetch.model.RenameFolderRequest
-import com.example.teman_belajar.fetch.model.UserFolderResponse
-import com.example.teman_belajar.fetch.model.VerifyOTPRequest
-import com.example.teman_belajar.fetch.model.VerifyOTPResponse
+import com.example.teman_belajar.fetch.model.*
 import com.example.teman_belajar.utils.datastore.UserPreferences
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.runBlocking
 import okhttp3.Interceptor
 import okhttp3.OkHttpClient
+import okhttp3.RequestBody
+import okhttp3.logging.HttpLoggingInterceptor
 import retrofit2.Response
 import retrofit2.Retrofit
 import retrofit2.converter.gson.GsonConverterFactory
-import retrofit2.http.Body
-import retrofit2.http.DELETE
-import retrofit2.http.GET
-import retrofit2.http.POST
-import retrofit2.http.PUT
-import retrofit2.http.Path
+import retrofit2.http.*
 import java.util.UUID
 
 
@@ -60,6 +46,30 @@ class AuthInterceptor(private val userPreferences: UserPreferences) : Intercepto
 
         val request = requestBuilder.build()
         return chain.proceed(request)
+    }
+}
+
+class SelectiveLoggingInterceptor : Interceptor {
+    private val logger = HttpLoggingInterceptor { message ->
+        Log.d("OkHttp", message)
+    }.apply {
+        level = HttpLoggingInterceptor.Level.BODY
+    }
+
+    override fun intercept(chain: Interceptor.Chain): okhttp3.Response {
+        val request = chain.request()
+        Log.d(
+            "AUTH",
+            "URL=${request.url}\nAuthorization=${request.header("Authorization")}"
+        )
+        val url = request.url.toString()
+        val shouldLog = url.contains("/api/materials/upload") || request.method == "PUT"
+
+        return if (shouldLog) {
+            logger.intercept(chain)
+        } else {
+            chain.proceed(request)
+        }
     }
 }
 
@@ -96,6 +106,33 @@ interface ApiService {
     @DELETE("/api/folders/{id}")
     suspend fun deleteFolder(@Path("id") id: UUID) : Response<Unit>
 
+    @GET("/api/folders/{id}/materials")
+    suspend fun getFolderMaterials(@Path("id") id: String): Response<List<FolderMaterialResponse>>
+
+    @POST("/api/materials/upload")
+    suspend fun uploadMaterial(@Body request: MaterialUploadRequest): Response<MaterialResponse>
+
+    @PUT
+    suspend fun uploadToSignedUrl(
+        @Url url: String,
+        @Body body: RequestBody
+    ): Response<Unit>
+
+    @POST("/api/materials/upload/success")
+    suspend fun notifyUploadSuccess(@Body request: MaterialUploadSuccessRequest): Response<String>
+
+    @GET("/api/materials/info")
+    suspend fun getMaterialInfo(
+        @Query("id") id: String,
+        @Query("fileName") fileName: String
+    ): Response<MaterialResponse>
+
+    @DELETE("/api/materials/delete")
+    suspend fun deleteMaterial(@Query("id") id: String): Response<GeneralResponse>
+
+    @PUT("/api/materials/rename")
+    suspend fun renameMaterial(@Body request: RenameMaterialRequest): Response<GeneralResponse>
+
     companion object {
         val BASE_URL: String
             get() {
@@ -109,12 +146,10 @@ interface ApiService {
         fun create(context: Context): ApiService {
             val userPreferences = UserPreferences(context)
 
-            val authInterceptor = AuthInterceptor(userPreferences)
-            val tokenAuthenticator = TokenAuthenticator(userPreferences)
-
             val client = OkHttpClient.Builder()
-                .addInterceptor(authInterceptor)
-                .authenticator(tokenAuthenticator)
+                .addInterceptor(SelectiveLoggingInterceptor())
+                .addInterceptor(AuthInterceptor(userPreferences))
+                .authenticator(TokenAuthenticator(userPreferences))
                 .build()
 
             return Retrofit.Builder()

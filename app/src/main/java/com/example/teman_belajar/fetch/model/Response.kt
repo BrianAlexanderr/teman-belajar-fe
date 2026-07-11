@@ -26,3 +26,14 @@ data class CreateFolderResponse(
     val msg: String,
     val createdAt: String
 )
+
+data class MaterialResponse(
+    val fileName: String,
+    val url: String
+)
+
+data class FolderMaterialResponse(
+    val fileId: String,
+    val fileName: String,
+    val fileType: String
+)

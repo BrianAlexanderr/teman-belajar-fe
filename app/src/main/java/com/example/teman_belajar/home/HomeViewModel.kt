@@ -35,6 +35,7 @@
     )
 
     sealed class HomeEvent {
+        object FetchFolders : HomeEvent()
         object LogoutClicked : HomeEvent()
         data class SearchQueryChanged(val query: String) : HomeEvent()
         data class FolderClicked(val folder: FolderItem) : HomeEvent()
@@ -187,6 +188,7 @@
 
         fun onEvent(event: HomeEvent) {
             when (event) {
+                HomeEvent.FetchFolders -> fetchFolders()
                 HomeEvent.LogoutClicked -> logout()
                 is HomeEvent.SearchQueryChanged -> {
                     _uiState.update { state ->

@@ -1,40 +1,89 @@
 package com.example.teman_belajar.folderdetail
 
-import androidx.lifecycle.ViewModel
+import android.app.Application
+import android.webkit.MimeTypeMap
+import androidx.core.net.toUri
+import androidx.lifecycle.AndroidViewModel
+import androidx.lifecycle.viewModelScope
+import com.example.teman_belajar.fetch.ApiService
+import com.example.teman_belajar.fetch.model.MaterialUploadRequest
+import com.example.teman_belajar.fetch.model.MaterialUploadSuccessRequest
+import com.example.teman_belajar.fetch.model.RenameMaterialRequest
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.async
+import kotlinx.coroutines.awaitAll
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
-import kotlin.random.Random
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
+import okhttp3.MediaType.Companion.toMediaTypeOrNull
+import okhttp3.OkHttpClient
+import okhttp3.Request
+import okhttp3.RequestBody
+import okio.BufferedSink
+import org.json.JSONObject
 
-data class DummyFile(val id: Int, val name: String)
+enum class FileType(val mimeTypes: List<String>) {
+    IMAGE(listOf("image/jpeg", "image/png", "image/webp")),
+    DOCUMENT(listOf(
+        "application/pdf",
+        "application/msword",
+        "application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+    )),
+    PPT(listOf(
+        "application/vnd.ms-powerpoint",
+        "application/vnd.openxmlformats-officedocument.presentationml.presentation"
+    ));
+
+    companion object {
+        fun fromMimeType(mimeType: String): FileType? {
+            return entries.find { it.mimeTypes.contains(mimeType) }
+        }
+    }
+}
+
+data class DummyFile(
+    val id: String,
+    val name: String,
+    val mimeType: String = "",
+    val uri: String? = null
+)
 
 data class FolderDetailUiState(
     val folderId: String = "",
     val folderName: String = "",
     val searchQuery: String = "",
+    val isLoading: Boolean = false,
+    val errorMessage: String? = null,
+    val successMessage: String? = null,
 
     val isAddFileMenuVisible: Boolean = false,
     val fileCounter: Int = 1,
     val newFileName: String = "",
+    val allFiles: List<DummyFile> = emptyList(),
     val files: List<DummyFile> = emptyList(),
 
     val isFileOptionsVisible: Boolean = false,
     val isRenameFileDialogVisible: Boolean = false,
     val isDeleteFileDialogVisible: Boolean = false,
-    val selectedFile: DummyFile? = null
+    val selectedFile: DummyFile? = null,
+
+    val isGenerateQuizSelected: Boolean = false,
+    val isSmartSummarySelected: Boolean = false
 )
 
 sealed class FolderDetailEvent {
     object NavigateBack : FolderDetailEvent()
+    object Refresh : FolderDetailEvent()
     data class SearchQueryChanged(val query: String) : FolderDetailEvent()
     object GenerateQuizClicked : FolderDetailEvent()
     object SmartSummaryClicked : FolderDetailEvent()
 
     object AddMateriClicked : FolderDetailEvent()
     object DismissAddFileMenu : FolderDetailEvent()
-    object CameraOptionClicked : FolderDetailEvent()
-    object DeviceOptionClicked : FolderDetailEvent()
+    data class FileAdded(val name: String, val mimeType: String, val uri: String?) : FolderDetailEvent()
     data class NewFileNameChanged(val name: String) : FolderDetailEvent()
 
     data class ShowFileOptions(val file: DummyFile) : FolderDetailEvent()
@@ -45,9 +94,13 @@ sealed class FolderDetailEvent {
     object DismissDeleteFileDialog : FolderDetailEvent()
     object ConfirmRenameFile : FolderDetailEvent()
     object ConfirmDeleteFile : FolderDetailEvent()
+    object ClearError : FolderDetailEvent()
+    object ClearSuccessMessage : FolderDetailEvent()
 }
 
-class FolderDetailViewModel : ViewModel() {
+class FolderDetailViewModel(application: Application) : AndroidViewModel(application) {
+    private val apiService = ApiService.create(application)
+
     private val _uiState = MutableStateFlow(FolderDetailUiState())
     val uiState: StateFlow<FolderDetailUiState> = _uiState.asStateFlow()
 
@@ -55,110 +108,210 @@ class FolderDetailViewModel : ViewModel() {
 
     fun setFolderData(id: String, name: String) {
         _uiState.update { it.copy(folderId = id, folderName = name) }
+        loadMaterials(id)
+    }
+
+    private fun loadMaterials(folderId: String) {
+        if (folderId.isEmpty()) return
+        _uiState.update { it.copy(isLoading = true, errorMessage = null) }
+        viewModelScope.launch {
+            try {
+                val response = apiService.getFolderMaterials(folderId)
+                if (response.isSuccessful) {
+                    val materials = response.body() ?: emptyList()
+                    val filesWithUrls = materials.map { material ->
+                        async {
+                            try {
+                                val infoResponse = apiService.getMaterialInfo(material.fileId, material.fileName)
+                                val url = if (infoResponse.isSuccessful) infoResponse.body()?.url else null
+                                DummyFile(id = material.fileId, name = material.fileName, mimeType = material.fileType, uri = url)
+                            } catch (e: Exception) {
+                                DummyFile(id = material.fileId, name = material.fileName, mimeType = material.fileType, uri = null)
+                            }
+                        }
+                    }.awaitAll()
+                    _uiState.update { state ->
+                        state.copy(
+                            allFiles = filesWithUrls,
+                            files = filesWithUrls.filter { it.name.contains(state.searchQuery, ignoreCase = true) },
+                            isLoading = false
+                        )
+                    }
+                } else {
+                    _uiState.update { it.copy(isLoading = false, errorMessage = parseError(response)) }
+                }
+            } catch (e: Exception) {
+                _uiState.update { it.copy(isLoading = false, errorMessage = "Terjadi kesalahan jaringan") }
+            }
+        }
+    }
+
+    private fun uploadMaterial(name: String, mimeType: String, uriString: String?) {
+        val folderId = _uiState.value.folderId
+        if (folderId.isEmpty() || uriString == null) return
+
+        _uiState.update { it.copy(isLoading = true, errorMessage = null, isAddFileMenuVisible = false) }
+
+        viewModelScope.launch {
+            try {
+                val request = MaterialUploadRequest(folderId = folderId, fileName = name, fileType = mimeType)
+                val response = apiService.uploadMaterial(request)
+
+                if (response.isSuccessful) {
+                    val body = response.body()
+                    val materialId = body?.fileName ?: ""
+                    val signedUrl = body?.url ?: ""
+
+                    if (signedUrl.isNotEmpty()) {
+                        val context = getApplication<Application>()
+                        val contentUri = uriString.toUri()
+                        val inputStream = context.contentResolver.openInputStream(contentUri)
+                        val fileBytes = inputStream?.use { it.readBytes() }
+
+                        if (fileBytes != null) {
+                            val mediaType = mimeType.toMediaTypeOrNull()
+
+                            val requestBody = object : RequestBody() {
+                                override fun contentType() = mediaType
+                                override fun contentLength() = fileBytes.size.toLong()
+                                override fun writeTo(sink: BufferedSink) {
+                                    sink.write(fileBytes)
+                                }
+                            }
+
+                            val putResponseCode = withContext(Dispatchers.IO) {
+                                val uploadClient = OkHttpClient.Builder().build()
+                                val uploadRequest = Request.Builder()
+                                    .url(signedUrl)
+                                    .put(requestBody)
+                                    .header("Content-Type", mimeType)
+                                    .build()
+
+                                uploadClient.newCall(uploadRequest).execute().use { putResponse ->
+                                    putResponse.code
+                                }
+                            }
+
+                            if (putResponseCode in 200..299) {
+                                val cleanPath = signedUrl.substringBefore("?")
+                                val notifyResponse = apiService.notifyUploadSuccess(
+                                    MaterialUploadSuccessRequest(materialId = materialId, path = cleanPath)
+                                )
+
+                                if (notifyResponse.isSuccessful) {
+                                    loadMaterials(folderId)
+                                    _uiState.update { it.copy(successMessage = "Berhasil diunggah!", isLoading = false) }
+                                } else {
+                                    _uiState.update { it.copy(isLoading = false, errorMessage = "Gagal sinkronisasi data") }
+                                }
+                            } else {
+                                _uiState.update { it.copy(isLoading = false, errorMessage = "Gagal unggah ke storage (Status: $putResponseCode)") }
+                            }
+                        } else {
+                            _uiState.update { it.copy(isLoading = false, errorMessage = "Gagal membaca file") }
+                        }
+                    } else {
+                        _uiState.update { it.copy(isLoading = false, errorMessage = "URL tidak valid") }
+                    }
+                } else {
+                    _uiState.update { it.copy(isLoading = false, errorMessage = parseError(response)) }
+                }
+            } catch (e: Exception) {
+                _uiState.update { it.copy(isLoading = false, errorMessage = e.message) }
+            }
+        }
+    }
+
+    private fun deleteMaterial(file: DummyFile) {
+        _uiState.update { it.copy(isLoading = true, isDeleteFileDialogVisible = false, errorMessage = null) }
+        viewModelScope.launch {
+            try {
+                val response = apiService.deleteMaterial(file.id)
+                if (response.isSuccessful) {
+                    loadMaterials(_uiState.value.folderId)
+                    _uiState.update { it.copy(successMessage = "Materi dihapus!") }
+                } else {
+                    _uiState.update { it.copy(isLoading = false, errorMessage = parseError(response)) }
+                }
+            } catch (e: Exception) {
+                _uiState.update { it.copy(isLoading = false, errorMessage = "Error jaringan") }
+            }
+        }
+    }
+
+    private fun renameMaterial() {
+        val file = _uiState.value.selectedFile ?: return
+        val newName = _uiState.value.newFileName.trim()
+        if (newName.isEmpty()) return
+
+        _uiState.update { it.copy(isLoading = true, isRenameFileDialogVisible = false, errorMessage = null) }
+        viewModelScope.launch {
+            try {
+                val response = apiService.renameMaterial(RenameMaterialRequest(id = file.id, newName = newName))
+                if (response.isSuccessful) {
+                    loadMaterials(_uiState.value.folderId)
+                    _uiState.update { it.copy(successMessage = "Nama materi berhasil diubah!", isLoading = false) }
+                } else {
+                    _uiState.update { it.copy(isLoading = false, errorMessage = parseError(response)) }
+                }
+            } catch (e: Exception) {
+                _uiState.update { it.copy(isLoading = false, errorMessage = "Terjadi kesalahan jaringan") }
+            }
+        }
+    }
+
+    private fun parseError(response: retrofit2.Response<*>): String {
+        return try {
+            val errorBody = response.errorBody()?.string()
+            if (errorBody != null) JSONObject(errorBody).optString("message", "Gagal")
+            else "Gagal"
+        } catch (e: Exception) { "Gagal" }
     }
 
     fun onEvent(event: FolderDetailEvent) {
         when (event) {
-            FolderDetailEvent.NavigateBack -> {
-                onNavigateBack?.invoke()
-            }
+            FolderDetailEvent.NavigateBack -> onNavigateBack?.invoke()
+            FolderDetailEvent.Refresh -> loadMaterials(_uiState.value.folderId)
             is FolderDetailEvent.SearchQueryChanged -> {
-                _uiState.update { it.copy(searchQuery = event.query) }
-            }
-
-            FolderDetailEvent.AddMateriClicked -> {
-                _uiState.update { it.copy(isAddFileMenuVisible = true) }
-            }
-            FolderDetailEvent.DismissAddFileMenu -> {
-                _uiState.update { it.copy(isAddFileMenuVisible = false) }
-            }
-            FolderDetailEvent.CameraOptionClicked -> {
-                _uiState.update { it.copy(isAddFileMenuVisible = false) }
-            }
-            FolderDetailEvent.DeviceOptionClicked -> {
                 _uiState.update { state ->
-                    val newDummyFile = DummyFile(
-                        id = Random.nextInt(100, 10000),
-                        name = "File${state.fileCounter}"
-                    )
-
                     state.copy(
-                        isAddFileMenuVisible = false,
-                        files = state.files + newDummyFile,
-                        fileCounter = state.fileCounter + 1
+                        searchQuery = event.query,
+                        files = state.allFiles.filter { it.name.contains(event.query, ignoreCase = true) }
                     )
                 }
             }
-
-            is FolderDetailEvent.NewFileNameChanged -> {
-                _uiState.update { it.copy(newFileName = event.name) }
-            }
-            is FolderDetailEvent.ShowFileOptions -> {
-                _uiState.update { it.copy(isFileOptionsVisible = true, selectedFile = event.file) }
-            }
-            FolderDetailEvent.DismissFileOptions -> {
-                _uiState.update { it.copy(isFileOptionsVisible = false, selectedFile = null) }
-            }
+            FolderDetailEvent.AddMateriClicked -> _uiState.update { it.copy(isAddFileMenuVisible = true) }
+            FolderDetailEvent.DismissAddFileMenu -> _uiState.update { it.copy(isAddFileMenuVisible = false) }
+            is FolderDetailEvent.FileAdded -> uploadMaterial(event.name, event.mimeType, event.uri)
+            is FolderDetailEvent.NewFileNameChanged -> _uiState.update { it.copy(newFileName = event.name) }
+            is FolderDetailEvent.ShowFileOptions -> _uiState.update { it.copy(isFileOptionsVisible = true, selectedFile = event.file) }
+            FolderDetailEvent.DismissFileOptions -> _uiState.update { it.copy(isFileOptionsVisible = false, selectedFile = null) }
             FolderDetailEvent.RenameFileClicked -> {
-                val currentFile = _uiState.value.selectedFile
-                _uiState.update {
-                    it.copy(
-                        isFileOptionsVisible = false,
-                        isRenameFileDialogVisible = true,
-                        newFileName = currentFile?.name ?: ""
+                val file = _uiState.value.selectedFile
+                _uiState.update { it.copy(isFileOptionsVisible = false, isRenameFileDialogVisible = true, newFileName = file?.name ?: "") }
+            }
+            FolderDetailEvent.DeleteFileClicked -> _uiState.update { it.copy(isFileOptionsVisible = false, isDeleteFileDialogVisible = true) }
+            FolderDetailEvent.DismissRenameFileDialog -> _uiState.update { it.copy(isRenameFileDialogVisible = false) }
+            FolderDetailEvent.DismissDeleteFileDialog -> _uiState.update { it.copy(isDeleteFileDialogVisible = false) }
+            FolderDetailEvent.ConfirmRenameFile -> renameMaterial()
+            FolderDetailEvent.ConfirmDeleteFile -> _uiState.value.selectedFile?.let { deleteMaterial(it) }
+            FolderDetailEvent.ClearError -> _uiState.update { it.copy(errorMessage = null) }
+            FolderDetailEvent.ClearSuccessMessage -> _uiState.update { it.copy(successMessage = null) }
+            FolderDetailEvent.GenerateQuizClicked -> {
+                _uiState.update { state ->
+                    state.copy(
+                        isGenerateQuizSelected = !state.isGenerateQuizSelected,
+                        isSmartSummarySelected = false
                     )
                 }
-            }
-            FolderDetailEvent.DeleteFileClicked -> {
-                _uiState.update { it.copy(isFileOptionsVisible = false, isDeleteFileDialogVisible = true) }
-            }
-            FolderDetailEvent.DismissRenameFileDialog -> {
-                _uiState.update { it.copy(isRenameFileDialogVisible = false, newFileName = "", selectedFile = null) }
-            }
-            FolderDetailEvent.DismissDeleteFileDialog -> {
-                _uiState.update { it.copy(isDeleteFileDialogVisible = false, selectedFile = null) }
-            }
-
-            FolderDetailEvent.ConfirmRenameFile -> {
-                val fileToRename = _uiState.value.selectedFile
-                val newName = _uiState.value.newFileName
-
-                if (fileToRename != null && newName.isNotBlank()) {
-                    _uiState.update { state ->
-                        val updatedFiles = state.files.map { file ->
-                            if (file.id == fileToRename.id) file.copy(name = newName) else file
-                        }
-
-                        state.copy(
-                            files = updatedFiles,
-                            isRenameFileDialogVisible = false,
-                            newFileName = "",
-                            selectedFile = null
-                        )
-                    }
-                }
-            }
-
-            FolderDetailEvent.ConfirmDeleteFile -> {
-                val fileToDelete = _uiState.value.selectedFile
-                if (fileToDelete != null) {
-                    _uiState.update { state ->
-                        val updatedFiles = state.files.filterNot { it.id == fileToDelete.id }
-
-                        state.copy(
-                            files = updatedFiles,
-                            isDeleteFileDialogVisible = false,
-                            selectedFile = null
-                        )
-                    }
-                }
-            }
-
-            FolderDetailEvent.GenerateQuizClicked -> {
-                // Placeholder generate quiz
             }
             FolderDetailEvent.SmartSummaryClicked -> {
-                // Placeholder summary
+                _uiState.update { state ->
+                    state.copy(
+                        isSmartSummarySelected = !state.isSmartSummarySelected,
+                        isGenerateQuizSelected = false
+                    )
+                }
             }
         }
     }
