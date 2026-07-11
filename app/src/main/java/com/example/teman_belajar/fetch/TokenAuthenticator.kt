@@ -1,11 +1,11 @@
 package com.example.teman_belajar.fetch
 
-import android.content.Context
 import com.example.teman_belajar.fetch.model.RefreshTokenRequst
 import com.example.teman_belajar.utils.SessionManager
 import com.example.teman_belajar.utils.datastore.UserPreferences
-import kotlinx.coroutines.flow.first
-import kotlinx.coroutines.runBlocking
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
 import okhttp3.Authenticator
 import okhttp3.Request
 import okhttp3.Route
@@ -17,9 +17,7 @@ class TokenAuthenticator(
 ) : Authenticator {
 
     override fun authenticate(route: Route?, response: okhttp3.Response): Request? {
-        val refreshToken = runBlocking {
-            userPreferences.refreshTokenFlow.first()
-        }
+        val refreshToken = TokenManager.refreshToken
         if (refreshToken.isNullOrEmpty()) {
             return null
         }
@@ -40,8 +38,11 @@ class TokenAuthenticator(
                 val userName = refreshResponse.body()?.userName
 
                 if (newAccessToken != null) {
-                    runBlocking {
-                        userPreferences.setLoggedIn(true, userName, newRefreshToken ?: refreshToken)
+                    TokenManager.accessToken = newAccessToken
+                    TokenManager.refreshToken = newRefreshToken ?: refreshToken
+
+                    CoroutineScope(Dispatchers.IO).launch {
+                        userPreferences.setLoggedIn(true, userName, TokenManager.refreshToken)
                     }
 
                     return response.request.newBuilder()
@@ -53,7 +54,10 @@ class TokenAuthenticator(
             e.printStackTrace()
         }
 
-        runBlocking {
+        TokenManager.accessToken = null
+        TokenManager.refreshToken = null
+
+        CoroutineScope(Dispatchers.IO).launch {
             userPreferences.setLoggedIn(false)
             SessionManager.triggerSessionExpired()
         }

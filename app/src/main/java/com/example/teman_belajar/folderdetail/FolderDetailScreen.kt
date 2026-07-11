@@ -201,7 +201,7 @@ fun FolderDetailScreen(
                     Icon(
                         imageVector = Icons.Outlined.Psychology,
                         contentDescription = "Generate Quiz",
-                        tint = if (uiState.isGenerateQuizSelected) Color.White else AppColors.Purple,
+                        tint = if (uiState.isGenerateQuizSelected) Color.White else Color.Gray,
                         modifier = Modifier.size(28.dp)
                     )
                     Spacer(modifier = Modifier.height(12.dp))
@@ -215,7 +215,7 @@ fun FolderDetailScreen(
                     Text(
                         text = "Latih pemahamanmu dari materi ini.",
                         fontSize = 10.sp,
-                        color = if (uiState.isGenerateQuizSelected) Color.White.copy(alpha = 0.8f) else Color.DarkGray,
+                        color = if (uiState.isGenerateQuizSelected) Color.White.copy(alpha = 0.8f) else Color.Gray,
                         lineHeight = 14.sp
                     )
                 }
@@ -236,7 +236,7 @@ fun FolderDetailScreen(
                     Icon(
                         imageVector = Icons.Outlined.AutoAwesome,
                         contentDescription = "Smart Summary",
-                        tint = if (uiState.isSmartSummarySelected) Color.White else Color.DarkGray,
+                        tint = if (uiState.isSmartSummarySelected) Color.White else Color.Gray,
                         modifier = Modifier.size(28.dp)
                     )
                     Spacer(modifier = Modifier.height(12.dp))
@@ -250,7 +250,7 @@ fun FolderDetailScreen(
                     Text(
                         text = "Ringkasan poin penting secara instan.",
                         fontSize = 10.sp,
-                        color = if (uiState.isSmartSummarySelected) Color.White.copy(alpha = 0.8f) else Color.DarkGray,
+                        color = if (uiState.isSmartSummarySelected) Color.White.copy(alpha = 0.8f) else Color.Gray,
                         lineHeight = 14.sp
                     )
                 }

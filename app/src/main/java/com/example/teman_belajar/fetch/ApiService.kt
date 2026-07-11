@@ -6,8 +6,6 @@ import android.util.Log
 import com.example.teman_belajar.BuildConfig
 import com.example.teman_belajar.fetch.model.*
 import com.example.teman_belajar.utils.datastore.UserPreferences
-import kotlinx.coroutines.flow.first
-import kotlinx.coroutines.runBlocking
 import okhttp3.Interceptor
 import okhttp3.OkHttpClient
 import okhttp3.RequestBody
@@ -30,15 +28,13 @@ fun isEmulator(): Boolean {
             )
 }
 
-class AuthInterceptor(private val userPreferences: UserPreferences) : Interceptor {
+class AuthInterceptor() : Interceptor {
     override fun intercept(chain: Interceptor.Chain): okhttp3.Response {
-
-        val token = runBlocking {
-            userPreferences.authTokenFlow.first()
-        }
 
         val originalRequest = chain.request()
         val requestBuilder = originalRequest.newBuilder()
+
+        val token = TokenManager.accessToken
 
         if (!token.isNullOrEmpty()) {
             requestBuilder.addHeader("Authorization", "Bearer $token")
@@ -106,32 +102,32 @@ interface ApiService {
     @DELETE("/api/folders/{id}")
     suspend fun deleteFolder(@Path("id") id: UUID) : Response<Unit>
 
-    @GET("/api/folders/{id}/materials")
-    suspend fun getFolderMaterials(@Path("id") id: String): Response<List<FolderMaterialResponse>>
+    @GET("/api/folders/{id}")
+    suspend fun getFolderById(@Path("id") id: UUID) : Response<UserFolderResponse>
+
+    @POST("/api/ai/generate-quiz/{folderId}")
+    suspend fun generateQuiz(@Path("folderId") folderId: String) : Response<GeneralResponse>
+
+    @POST("/api/ai/smart-summary/{folderId}")
+    suspend fun smartSummary(@Path("folderId") folderId: String) : Response<GeneralResponse>
+
+    @GET("/api/materials/folder/{folderId}")
+    suspend fun getFolderMaterials(@Path("folderId") folderId: String) : Response<List<FolderMaterialResponse>>
+
+    @GET("/api/materials/info/{fileId}/{fileName}")
+    suspend fun getMaterialInfo(@Path("fileId") fileId: String, @Path("fileName") fileName: String) : Response<MaterialResponse>
 
     @POST("/api/materials/upload")
-    suspend fun uploadMaterial(@Body request: MaterialUploadRequest): Response<MaterialResponse>
-
-    @PUT
-    suspend fun uploadToSignedUrl(
-        @Url url: String,
-        @Body body: RequestBody
-    ): Response<Unit>
+    suspend fun uploadMaterial(@Body request: MaterialUploadRequest) : Response<MaterialResponse>
 
     @POST("/api/materials/upload/success")
-    suspend fun notifyUploadSuccess(@Body request: MaterialUploadSuccessRequest): Response<String>
+    suspend fun notifyUploadSuccess(@Body request: MaterialUploadSuccessRequest) : Response<Unit>
 
-    @GET("/api/materials/info")
-    suspend fun getMaterialInfo(
-        @Query("id") id: String,
-        @Query("fileName") fileName: String
-    ): Response<MaterialResponse>
-
-    @DELETE("/api/materials/delete")
-    suspend fun deleteMaterial(@Query("id") id: String): Response<GeneralResponse>
+    @DELETE("/api/materials/{id}")
+    suspend fun deleteMaterial(@Path("id") id: String) : Response<Unit>
 
     @PUT("/api/materials/rename")
-    suspend fun renameMaterial(@Body request: RenameMaterialRequest): Response<GeneralResponse>
+    suspend fun renameMaterial(@Body request: RenameMaterialRequest) : Response<Unit>
 
     companion object {
         val BASE_URL: String
@@ -146,10 +142,12 @@ interface ApiService {
         fun create(context: Context): ApiService {
             val userPreferences = UserPreferences(context)
 
+            val authInterceptor = AuthInterceptor()
+            val tokenAuthenticator = TokenAuthenticator(userPreferences)
+
             val client = OkHttpClient.Builder()
-                .addInterceptor(SelectiveLoggingInterceptor())
-                .addInterceptor(AuthInterceptor(userPreferences))
-                .authenticator(TokenAuthenticator(userPreferences))
+                .addInterceptor(authInterceptor)
+                .authenticator(tokenAuthenticator)
                 .build()
 
             return Retrofit.Builder()
