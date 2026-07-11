@@ -42,3 +42,19 @@ data class RenameFolderRequest(
     val newName: String
 )
 
+
+data class MaterialUploadRequest(
+    val folderId: String,
+    val fileName: String,
+    val fileType: String
+)
+
+data class MaterialUploadSuccessRequest(
+    val materialId: String,
+    val path: String
+)
+
+data class RenameMaterialRequest(
+    val id: String,
+    val newName: String
+)

@@ -2,32 +2,18 @@ package com.example.teman_belajar.fetch
 
 import android.content.Context
 import android.os.Build
+import android.util.Log
 import com.example.teman_belajar.BuildConfig
-import com.example.teman_belajar.fetch.model.ChangePasswordRequest
-import com.example.teman_belajar.fetch.model.CreateFolderRequest
-import com.example.teman_belajar.fetch.model.CreateFolderResponse
-import com.example.teman_belajar.fetch.model.ForgotPasswordRequest
-import com.example.teman_belajar.fetch.model.GeneralResponse
-import com.example.teman_belajar.fetch.model.LoginRequest
-import com.example.teman_belajar.fetch.model.LoginResponse
-import com.example.teman_belajar.fetch.model.RefreshTokenRequst
-import com.example.teman_belajar.fetch.model.RegisterRequest
-import com.example.teman_belajar.fetch.model.RenameFolderRequest
-import com.example.teman_belajar.fetch.model.UserFolderResponse
-import com.example.teman_belajar.fetch.model.VerifyOTPRequest
-import com.example.teman_belajar.fetch.model.VerifyOTPResponse
+import com.example.teman_belajar.fetch.model.*
 import com.example.teman_belajar.utils.datastore.UserPreferences
 import okhttp3.Interceptor
 import okhttp3.OkHttpClient
+import okhttp3.RequestBody
+import okhttp3.logging.HttpLoggingInterceptor
 import retrofit2.Response
 import retrofit2.Retrofit
 import retrofit2.converter.gson.GsonConverterFactory
-import retrofit2.http.Body
-import retrofit2.http.DELETE
-import retrofit2.http.GET
-import retrofit2.http.POST
-import retrofit2.http.PUT
-import retrofit2.http.Path
+import retrofit2.http.*
 import java.util.UUID
 
 
@@ -56,6 +42,30 @@ class AuthInterceptor() : Interceptor {
 
         val request = requestBuilder.build()
         return chain.proceed(request)
+    }
+}
+
+class SelectiveLoggingInterceptor : Interceptor {
+    private val logger = HttpLoggingInterceptor { message ->
+        Log.d("OkHttp", message)
+    }.apply {
+        level = HttpLoggingInterceptor.Level.BODY
+    }
+
+    override fun intercept(chain: Interceptor.Chain): okhttp3.Response {
+        val request = chain.request()
+        Log.d(
+            "AUTH",
+            "URL=${request.url}\nAuthorization=${request.header("Authorization")}"
+        )
+        val url = request.url.toString()
+        val shouldLog = url.contains("/api/materials/upload") || request.method == "PUT"
+
+        return if (shouldLog) {
+            logger.intercept(chain)
+        } else {
+            chain.proceed(request)
+        }
     }
 }
 
@@ -91,6 +101,33 @@ interface ApiService {
 
     @DELETE("/api/folders/{id}")
     suspend fun deleteFolder(@Path("id") id: UUID) : Response<Unit>
+
+    @GET("/api/folders/{id}")
+    suspend fun getFolderById(@Path("id") id: UUID) : Response<UserFolderResponse>
+
+    @POST("/api/ai/generate-quiz/{folderId}")
+    suspend fun generateQuiz(@Path("folderId") folderId: String) : Response<GeneralResponse>
+
+    @POST("/api/ai/smart-summary/{folderId}")
+    suspend fun smartSummary(@Path("folderId") folderId: String) : Response<GeneralResponse>
+
+    @GET("/api/materials/folder/{folderId}")
+    suspend fun getFolderMaterials(@Path("folderId") folderId: String) : Response<List<FolderMaterialResponse>>
+
+    @GET("/api/materials/info/{fileId}/{fileName}")
+    suspend fun getMaterialInfo(@Path("fileId") fileId: String, @Path("fileName") fileName: String) : Response<MaterialResponse>
+
+    @POST("/api/materials/upload")
+    suspend fun uploadMaterial(@Body request: MaterialUploadRequest) : Response<MaterialResponse>
+
+    @POST("/api/materials/upload/success")
+    suspend fun notifyUploadSuccess(@Body request: MaterialUploadSuccessRequest) : Response<Unit>
+
+    @DELETE("/api/materials/{id}")
+    suspend fun deleteMaterial(@Path("id") id: String) : Response<Unit>
+
+    @PUT("/api/materials/rename")
+    suspend fun renameMaterial(@Body request: RenameMaterialRequest) : Response<Unit>
 
     companion object {
         val BASE_URL: String
