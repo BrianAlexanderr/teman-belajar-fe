@@ -111,7 +111,9 @@ class MainActivity : ComponentActivity() {
                             val folderId = backStackEntry.arguments?.getString("folderId") ?: ""
                             val folderName = backStackEntry.arguments?.getString("folderName") ?: ""
 
-                            folderDetailViewModel.setFolderData(folderId, folderName)
+                            LaunchedEffect(folderId) {
+                                folderDetailViewModel.setFolderData(folderId, folderName)
+                            }
 
                             val uiState by folderDetailViewModel.uiState.collectAsState()
 

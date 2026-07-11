@@ -1,7 +1,6 @@
 package com.example.teman_belajar.folderdetail
 
 import android.app.Application
-import android.webkit.MimeTypeMap
 import androidx.core.net.toUri
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
@@ -10,8 +9,6 @@ import com.example.teman_belajar.fetch.model.MaterialUploadRequest
 import com.example.teman_belajar.fetch.model.MaterialUploadSuccessRequest
 import com.example.teman_belajar.fetch.model.RenameMaterialRequest
 import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.async
-import kotlinx.coroutines.awaitAll
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -109,7 +106,16 @@ class FolderDetailViewModel(application: Application) : AndroidViewModel(applica
     var onOpenFile: ((String, String) -> Unit)? = null
 
     fun setFolderData(id: String, name: String) {
-        _uiState.update { it.copy(folderId = id, folderName = name) }
+        if (_uiState.value.folderId != id) {
+            _uiState.value = FolderDetailUiState(
+                folderId = id,
+                folderName = name,
+                isLoading = true
+            )
+        } else {
+            _uiState.update { it.copy(folderId = id, folderName = name) }
+        }
+
         loadMaterials(id)
     }
 
@@ -139,7 +145,7 @@ class FolderDetailViewModel(application: Application) : AndroidViewModel(applica
                 } else {
                     _uiState.update { it.copy(isLoading = false, errorMessage = parseError(response)) }
                 }
-            } catch (e: Exception) {
+            } catch (_: Exception) {
                 _uiState.update { it.copy(isLoading = false, errorMessage = "Terjadi kesalahan jaringan") }
             }
         }
@@ -158,7 +164,7 @@ class FolderDetailViewModel(application: Application) : AndroidViewModel(applica
 
                 if (response.isSuccessful) {
                     val body = response.body()
-                    val materialId = body?.fileName ?: "" 
+                    val materialId = body?.fileName ?: ""
                     val signedUrl = body?.url ?: ""
 
                     if (signedUrl.isNotEmpty()) {
@@ -233,7 +239,7 @@ class FolderDetailViewModel(application: Application) : AndroidViewModel(applica
                 } else {
                     _uiState.update { it.copy(isLoading = false, errorMessage = parseError(response)) }
                 }
-            } catch (e: Exception) {
+            } catch (_: Exception) {
                 _uiState.update { it.copy(isLoading = false, errorMessage = "Error jaringan") }
             }
         }
@@ -254,7 +260,7 @@ class FolderDetailViewModel(application: Application) : AndroidViewModel(applica
                 } else {
                     _uiState.update { it.copy(isLoading = false, errorMessage = parseError(response)) }
                 }
-            } catch (e: Exception) {
+            } catch (_: Exception) {
                 _uiState.update { it.copy(isLoading = false, errorMessage = "Terjadi kesalahan jaringan") }
             }
         }
@@ -265,12 +271,15 @@ class FolderDetailViewModel(application: Application) : AndroidViewModel(applica
             val errorBody = response.errorBody()?.string()
             if (errorBody != null) JSONObject(errorBody).optString("message", "Gagal")
             else "Gagal"
-        } catch (e: Exception) { "Gagal" }
+        } catch (_: Exception) { "Gagal" }
     }
 
     fun onEvent(event: FolderDetailEvent) {
         when (event) {
-            FolderDetailEvent.NavigateBack -> onNavigateBack?.invoke()
+            FolderDetailEvent.NavigateBack -> {
+                _uiState.value = FolderDetailUiState()
+                onNavigateBack?.invoke()
+            }
             FolderDetailEvent.Refresh -> loadMaterials(_uiState.value.folderId)
             is FolderDetailEvent.SearchQueryChanged -> {
                 _uiState.update { state ->
@@ -328,7 +337,7 @@ class FolderDetailViewModel(application: Application) : AndroidViewModel(applica
                         } else {
                             _uiState.update { it.copy(errorMessage = parseError(response)) }
                         }
-                    } catch (e: Exception) {
+                    } catch (_: Exception) {
                         _uiState.update { it.copy(errorMessage = "Gagal memuat file") }
                     } finally {
                         _uiState.update { it.copy(isLoading = false, selectedFile = null) }

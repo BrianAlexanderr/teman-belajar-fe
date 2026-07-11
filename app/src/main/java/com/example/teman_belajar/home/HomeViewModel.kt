@@ -87,7 +87,11 @@
             }
         }
 
-        private fun fetchFolders() {
+        private fun fetchFolders(forceRefresh: Boolean = false) {
+            if (_uiState.value.allFolders.isNotEmpty() && !forceRefresh) {
+                return
+            }
+
             viewModelScope.launch {
                 _uiState.update { it.copy(isLoading = true, errorMessage = null) }
                 try {
@@ -100,8 +104,7 @@
                         }
                         _uiState.update { state ->
                             state.copy(
-                                allFolders = folderItems, // Simpan data utuh dari backend
-                                // Filter data utuh tersebut berdasarkan query pencarian saat ini (abaikan huruf besar/kecil)
+                                allFolders = folderItems,
                                 folders = folderItems.filter {
                                     it.name.contains(state.searchQuery, ignoreCase = true)
                                 },
@@ -125,7 +128,7 @@
                 try {
                     val response = apiService.createFolder(CreateFolderRequest(name = folderName))
                     if (response.isSuccessful) {
-                        fetchFolders()
+                        fetchFolders(true)
                         _uiState.update { it.copy(successMessage = "Folder berhasil dibuat!") }
                     } else {
                         handleApiError(response, "Gagal membuat folder")
@@ -142,7 +145,7 @@
                 try {
                     val response = apiService.renameFolder(RenameFolderRequest(id, newName))
                     if (response.isSuccessful) {
-                        fetchFolders()
+                        fetchFolders(true)
                         _uiState.update { it.copy(successMessage = "Folder berhasil diubah!") }
                     } else {
                         handleApiError(response, "Gagal mengubah nama folder")
@@ -159,7 +162,7 @@
                 try {
                     val response = apiService.deleteFolder(id)
                     if (response.isSuccessful) {
-                        fetchFolders()
+                        fetchFolders(true)
                         _uiState.update { it.copy(successMessage = "Folder berhasil dihapus!") }
                     } else {
                         handleApiError(response, "Gagal menghapus folder")
