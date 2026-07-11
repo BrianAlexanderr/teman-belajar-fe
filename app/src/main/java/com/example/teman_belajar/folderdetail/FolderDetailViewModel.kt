@@ -96,6 +96,7 @@ sealed class FolderDetailEvent {
     object ConfirmDeleteFile : FolderDetailEvent()
     object ClearError : FolderDetailEvent()
     object ClearSuccessMessage : FolderDetailEvent()
+    data class FileClicked(val file: DummyFile) : FolderDetailEvent()
 }
 
 class FolderDetailViewModel(application: Application) : AndroidViewModel(application) {
@@ -105,6 +106,7 @@ class FolderDetailViewModel(application: Application) : AndroidViewModel(applica
     val uiState: StateFlow<FolderDetailUiState> = _uiState.asStateFlow()
 
     var onNavigateBack: (() -> Unit)? = null
+    var onOpenFile: ((String, String) -> Unit)? = null
 
     fun setFolderData(id: String, name: String) {
         _uiState.update { it.copy(folderId = id, folderName = name) }
@@ -119,21 +121,18 @@ class FolderDetailViewModel(application: Application) : AndroidViewModel(applica
                 val response = apiService.getFolderMaterials(folderId)
                 if (response.isSuccessful) {
                     val materials = response.body() ?: emptyList()
-                    val filesWithUrls = materials.map { material ->
-                        async {
-                            try {
-                                val infoResponse = apiService.getMaterialInfo(material.fileId, material.fileName)
-                                val url = if (infoResponse.isSuccessful) infoResponse.body()?.url else null
-                                DummyFile(id = material.fileId, name = material.fileName, mimeType = material.fileType, uri = url)
-                            } catch (e: Exception) {
-                                DummyFile(id = material.fileId, name = material.fileName, mimeType = material.fileType, uri = null)
-                            }
-                        }
-                    }.awaitAll()
+                    val files = materials.map { material ->
+                        DummyFile(
+                            id = material.fileId,
+                            name = material.fileName,
+                            mimeType = material.fileType,
+                            uri = null
+                        )
+                    }
                     _uiState.update { state ->
                         state.copy(
-                            allFiles = filesWithUrls,
-                            files = filesWithUrls.filter { it.name.contains(state.searchQuery, ignoreCase = true) },
+                            allFiles = files,
+                            files = files.filter { it.name.contains(state.searchQuery, ignoreCase = true) },
                             isLoading = false
                         )
                     }
@@ -159,7 +158,7 @@ class FolderDetailViewModel(application: Application) : AndroidViewModel(applica
 
                 if (response.isSuccessful) {
                     val body = response.body()
-                    val materialId = body?.fileName ?: ""
+                    val materialId = body?.fileName ?: "" 
                     val signedUrl = body?.url ?: ""
 
                     if (signedUrl.isNotEmpty()) {
@@ -199,6 +198,7 @@ class FolderDetailViewModel(application: Application) : AndroidViewModel(applica
                                 )
 
                                 if (notifyResponse.isSuccessful) {
+                                    _uiState.update { it.copy(searchQuery = "") } // Reset search agar file baru terlihat
                                     loadMaterials(folderId)
                                     _uiState.update { it.copy(successMessage = "Berhasil diunggah!", isLoading = false) }
                                 } else {
@@ -311,6 +311,28 @@ class FolderDetailViewModel(application: Application) : AndroidViewModel(applica
                         isSmartSummarySelected = !state.isSmartSummarySelected,
                         isGenerateQuizSelected = false
                     )
+                }
+            }
+            is FolderDetailEvent.FileClicked -> {
+                viewModelScope.launch {
+                    _uiState.update { it.copy(isLoading = true, selectedFile = event.file, errorMessage = null) }
+                    try {
+                        val response = apiService.getMaterialInfo(event.file.id, event.file.name)
+                        if (response.isSuccessful) {
+                            val url = response.body()?.url
+                            if (!url.isNullOrEmpty()) {
+                                onOpenFile?.invoke(url, event.file.mimeType)
+                            } else {
+                                _uiState.update { it.copy(errorMessage = "URL file tidak ditemukan") }
+                            }
+                        } else {
+                            _uiState.update { it.copy(errorMessage = parseError(response)) }
+                        }
+                    } catch (e: Exception) {
+                        _uiState.update { it.copy(errorMessage = "Gagal memuat file") }
+                    } finally {
+                        _uiState.update { it.copy(isLoading = false, selectedFile = null) }
+                    }
                 }
             }
         }

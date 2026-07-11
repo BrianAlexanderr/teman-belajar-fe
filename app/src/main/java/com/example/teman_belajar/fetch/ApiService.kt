@@ -111,11 +111,11 @@ interface ApiService {
     @POST("/api/ai/smart-summary/{folderId}")
     suspend fun smartSummary(@Path("folderId") folderId: String) : Response<GeneralResponse>
 
-    @GET("/api/materials/folder/{folderId}")
-    suspend fun getFolderMaterials(@Path("folderId") folderId: String) : Response<List<FolderMaterialResponse>>
+    @GET("/api/folders/{id}/materials")
+    suspend fun getFolderMaterials(@Path("id") id: String) : Response<List<FolderMaterialResponse>>
 
-    @GET("/api/materials/info/{fileId}/{fileName}")
-    suspend fun getMaterialInfo(@Path("fileId") fileId: String, @Path("fileName") fileName: String) : Response<MaterialResponse>
+    @GET("/api/materials/info")
+    suspend fun getMaterialInfo(@Query("id") id: String, @Query("fileName") fileName: String) : Response<MaterialResponse>
 
     @POST("/api/materials/upload")
     suspend fun uploadMaterial(@Body request: MaterialUploadRequest) : Response<MaterialResponse>
@@ -123,8 +123,8 @@ interface ApiService {
     @POST("/api/materials/upload/success")
     suspend fun notifyUploadSuccess(@Body request: MaterialUploadSuccessRequest) : Response<Unit>
 
-    @DELETE("/api/materials/{id}")
-    suspend fun deleteMaterial(@Path("id") id: String) : Response<Unit>
+    @DELETE("/api/materials/delete")
+    suspend fun deleteMaterial(@Query("id") id: String) : Response<GeneralResponse>
 
     @PUT("/api/materials/rename")
     suspend fun renameMaterial(@Body request: RenameMaterialRequest) : Response<Unit>
