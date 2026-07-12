@@ -1,6 +1,7 @@
 package com.example.teman_belajar.folderdetail
 
 import android.app.Application
+import android.webkit.MimeTypeMap
 import androidx.core.net.toUri
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
@@ -121,14 +122,14 @@ class FolderDetailViewModel(application: Application) : AndroidViewModel(applica
         if (id.isEmpty() || _uiState.value.folderId == id) return
 
         _uiState.update { it.copy(
-            folderId = id, 
+            folderId = id,
             folderName = name,
             isLoading = true,
             allFiles = emptyList(),
             files = emptyList(),
             errorMessage = null
         ) }
-        
+
         loadMaterials(id)
     }
 
@@ -204,6 +205,7 @@ class FolderDetailViewModel(application: Application) : AndroidViewModel(applica
                     val materialId = body?.fileName ?: ""
 
                     if (signedUrl.isNotEmpty()) {
+                        val context = getApplication<Application>()
                         val contentUri = uriString.toUri()
                         val inputStream = getApplication<Application>().contentResolver.openInputStream(contentUri)
                         val fileBytes = inputStream?.use { it.readBytes() }
@@ -304,12 +306,15 @@ class FolderDetailViewModel(application: Application) : AndroidViewModel(applica
             val errorBody = response.errorBody()?.string()
             if (errorBody != null) JSONObject(errorBody).optString("message", "Gagal")
             else "Gagal"
-        } catch (e: Exception) { "Gagal" }
+        } catch (_: Exception) { "Gagal" }
     }
 
     fun onEvent(event: FolderDetailEvent) {
         when (event) {
-            FolderDetailEvent.NavigateBack -> onNavigateBack?.invoke()
+            FolderDetailEvent.NavigateBack -> {
+                _uiState.value = FolderDetailUiState()
+                onNavigateBack?.invoke()
+            }
             FolderDetailEvent.Refresh -> loadMaterials(_uiState.value.folderId)
             is FolderDetailEvent.SearchQueryChanged -> {
                 _uiState.update { state ->
