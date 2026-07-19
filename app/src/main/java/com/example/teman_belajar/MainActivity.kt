@@ -29,6 +29,8 @@ import com.example.teman_belajar.home.HomeViewModel
 import com.example.teman_belajar.splash.SplashScreen
 import com.example.teman_belajar.theme.TemanBelajarTheme
 import com.example.teman_belajar.utils.SessionManager
+import com.example.teman_belajar.folderdetail.SummaryDetailScreen
+import com.example.teman_belajar.folderdetail.SummaryDetailUiState
 
 class MainActivity : ComponentActivity() {
 
@@ -120,11 +122,22 @@ class MainActivity : ComponentActivity() {
                             folderDetailViewModel.onNavigateBack = {
                                 navController.popBackStack()
                             }
+                            
+                            folderDetailViewModel.onNavigateToSummaryDetail = {
+                                navController.navigate("summary_detail")
+                            }
 
                             com.example.teman_belajar.folderdetail.FolderDetailScreen(
                                 viewModel = folderDetailViewModel,
                                 uiState = uiState,
                                 onEvent = folderDetailViewModel::onEvent
+                            )
+                        }
+
+                        composable("summary_detail") {
+                            SummaryDetailScreen(
+                                onBackClick = { navController.popBackStack() },
+                                onStartQuizClick = { /* Handle start quiz */ }
                             )
                         }
 

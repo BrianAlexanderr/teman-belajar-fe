@@ -14,33 +14,30 @@ import com.example.teman_belajar.components.ActionMenuItem
 import com.example.teman_belajar.components.ActionSelectionDialog
 import com.example.teman_belajar.components.ConfirmationDialog
 import com.example.teman_belajar.components.TextInputDialog
+import androidx.compose.animation.*
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.lazy.grid.GridCells
-import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
-import androidx.compose.foundation.lazy.grid.items
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.LazyRow
+import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material.icons.filled.Add
-import androidx.compose.material.icons.filled.DeleteOutline
-import androidx.compose.material.icons.filled.Edit
-import androidx.compose.material.icons.filled.MoreVert
-import androidx.compose.material.icons.filled.Search
-import androidx.compose.material.icons.outlined.AutoAwesome
-import androidx.compose.material.icons.outlined.CameraAlt
-import androidx.compose.material.icons.outlined.DeleteForever
-import androidx.compose.material.icons.outlined.Psychology
-import androidx.compose.material.icons.outlined.UploadFile
+import androidx.compose.material.icons.filled.*
+import androidx.compose.material.icons.outlined.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
@@ -116,7 +113,6 @@ fun openFile(context: Context, uriString: String?, mimeType: String) {
         Toast.makeText(context, "Gagal membuka file", Toast.LENGTH_SHORT).show()
     }
 }
-
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun FolderDetailScreen(
@@ -129,6 +125,12 @@ fun FolderDetailScreen(
     LaunchedEffect(Unit) {
         viewModel.onOpenFile = { url, mimeType ->
             openFile(context, url, mimeType)
+        }
+    }
+
+    DisposableEffect(Unit) {
+        onDispose {
+            onEvent(FolderDetailEvent.SearchQueryChanged(""))
         }
     }
 
@@ -173,185 +175,241 @@ fun FolderDetailScreen(
         }
     }
 
-    Column(
-        modifier = Modifier
-            .fillMaxSize()
-            .background(Color.White)
-            .systemBarsPadding()
-    ) {
-        Row(
-            modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 16.dp),
-            verticalAlignment = Alignment.CenterVertically
+    Box(modifier = Modifier.fillMaxSize()) {
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .background(AppColors.Surface)
+                .systemBarsPadding()
+                .imePadding()
         ) {
-            IconButton(onClick = { onEvent(FolderDetailEvent.NavigateBack) }) {
-                Icon(imageVector = Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back", tint = Color.Black)
-            }
-            Spacer(modifier = Modifier.width(8.dp))
-            Text(text = uiState.folderName.ifEmpty { "Folder" }, fontSize = 24.sp, fontWeight = FontWeight.Bold, color = Color.Black)
-        }
-
-        Row(
-            modifier = Modifier.fillMaxWidth().padding(horizontal = 24.dp, vertical = 8.dp),
-            horizontalArrangement = Arrangement.spacedBy(16.dp)
-        ) {
-            Card(
-                modifier = Modifier
-                    .weight(1f)
-                    .height(130.dp)
-                    .clickable { onEvent(FolderDetailEvent.GenerateQuizClicked) },
-                shape = RoundedCornerShape(12.dp),
-                colors = CardDefaults.cardColors(
-                    containerColor = if (uiState.isGenerateQuizSelected) AppColors.Purple else Color(0xFFF3F4F6)
-                ),
-                border = if (uiState.isGenerateQuizSelected) null else BorderStroke(1.dp, Color(0xFFE5E7EB))
+            Row(
+                modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 16.dp),
+                verticalAlignment = Alignment.CenterVertically
             ) {
-                Column(modifier = Modifier.padding(16.dp)) {
+                IconButton(onClick = { 
+                    if (uiState.isSummarySelectionMode) onEvent(FolderDetailEvent.CancelSummarySelection)
+                    else onEvent(FolderDetailEvent.NavigateBack) 
+                }) {
                     Icon(
-                        imageVector = Icons.Outlined.Psychology,
-                        contentDescription = "Generate Quiz",
-                        tint = if (uiState.isGenerateQuizSelected) Color.White else Color.Gray,
-                        modifier = Modifier.size(28.dp)
-                    )
-                    Spacer(modifier = Modifier.height(12.dp))
-                    Text(
-                        text = "Generate Quiz",
-                        fontWeight = FontWeight.Bold,
-                        color = if (uiState.isGenerateQuizSelected) Color.White else Color.Black,
-                        fontSize = 14.sp
-                    )
-                    Spacer(modifier = Modifier.height(4.dp))
-                    Text(
-                        text = "Latih pemahamanmu dari materi ini.",
-                        fontSize = 10.sp,
-                        color = if (uiState.isGenerateQuizSelected) Color.White.copy(alpha = 0.8f) else Color.Gray,
-                        lineHeight = 14.sp
+                        imageVector = if (uiState.isSummarySelectionMode) Icons.Default.Close else Icons.AutoMirrored.Filled.ArrowBack, 
+                        contentDescription = "Back", 
+                        tint = AppColors.TextPrimary
                     )
                 }
+                Spacer(modifier = Modifier.width(8.dp))
+                Text(
+                    text = if (uiState.isSummarySelectionMode) "Pilih Materi (${uiState.selectedMaterialIds.size})" else uiState.folderName.ifEmpty { "Folder" },
+                    modifier = Modifier.weight(1f),
+                    fontSize = 20.sp,
+                    fontWeight = FontWeight.Bold,
+                    color = AppColors.TextPrimary,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis
+                )
+                if (!uiState.isSummarySelectionMode) {
+                    IconButton(onClick = { onEvent(FolderDetailEvent.ShowFolderOptions) }) {
+                        Icon(imageVector = Icons.Default.MoreVert, contentDescription = "Menu", tint = AppColors.TextPrimary)
+                    }
+                }
+            }
+
+            val bannerBg = if (uiState.isSummarySelectionMode) {
+                Brush.horizontalGradient(listOf(AppColors.Purple, AppColors.Purple))
+            } else {
+                Brush.horizontalGradient(listOf(AppColors.PurpleLight, AppColors.DecorationBot))
             }
 
             Card(
                 modifier = Modifier
-                    .weight(1f)
-                    .height(130.dp)
-                    .clickable { onEvent(FolderDetailEvent.SmartSummaryClicked) },
-                shape = RoundedCornerShape(12.dp),
-                colors = CardDefaults.cardColors(
-                    containerColor = if (uiState.isSmartSummarySelected) AppColors.Purple else Color(0xFFF3F4F6)
-                ),
-                border = if (uiState.isSmartSummarySelected) null else BorderStroke(1.dp, Color(0xFFE5E7EB))
+                    .fillMaxWidth()
+                    .padding(horizontal = 24.dp)
+                    .clickable(enabled = !uiState.isSummarySelectionMode) { onEvent(FolderDetailEvent.SmartSummaryClicked) },
+                shape = RoundedCornerShape(16.dp),
+                border = if (uiState.isSummarySelectionMode) null else BorderStroke(1.dp, AppColors.PurpleDot),
+                elevation = CardDefaults.cardElevation(defaultElevation = if (uiState.isSummarySelectionMode) 4.dp else 0.dp)
             ) {
-                Column(modifier = Modifier.padding(16.dp)) {
-                    Icon(
-                        imageVector = Icons.Outlined.AutoAwesome,
-                        contentDescription = "Smart Summary",
-                        tint = if (uiState.isSmartSummarySelected) Color.White else Color.Gray,
-                        modifier = Modifier.size(28.dp)
-                    )
-                    Spacer(modifier = Modifier.height(12.dp))
-                    Text(
-                        text = "Smart Summary",
-                        fontWeight = FontWeight.Bold,
-                        color = if (uiState.isSmartSummarySelected) Color.White else Color.Black,
-                        fontSize = 14.sp
-                    )
-                    Spacer(modifier = Modifier.height(4.dp))
-                    Text(
-                        text = "Ringkasan poin penting secara instan.",
-                        fontSize = 10.sp,
-                        color = if (uiState.isSmartSummarySelected) Color.White.copy(alpha = 0.8f) else Color.Gray,
-                        lineHeight = 14.sp
-                    )
-                }
-            }
-        }
-
-        Spacer(modifier = Modifier.height(24.dp))
-
-        OutlinedTextField(
-            value = uiState.searchQuery,
-            onValueChange = { onEvent(FolderDetailEvent.SearchQueryChanged(it)) },
-            placeholder = { Text("Cari materi atau topik...", color = Color.Gray, fontSize = 14.sp) },
-            leadingIcon = { Icon(Icons.Default.Search, contentDescription = null, tint = Color.Gray) },
-            modifier = Modifier.fillMaxWidth().padding(horizontal = 24.dp),
-            shape = RoundedCornerShape(32.dp),
-            colors = OutlinedTextFieldDefaults.colors(
-                focusedBorderColor = AppColors.Purple,
-                unfocusedBorderColor = Color.LightGray,
-                focusedContainerColor = Color.White,
-                unfocusedContainerColor = Color.White
-            ),
-            singleLine = true
-        )
-
-        Spacer(modifier = Modifier.height(32.dp))
-
-        Row(
-            modifier = Modifier.fillMaxWidth().padding(horizontal = 24.dp),
-            horizontalArrangement = Arrangement.SpaceBetween,
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            Text(text = "Materi", fontSize = 18.sp, fontWeight = FontWeight.Bold, color = Color.Black)
-            IconButton(onClick = { onEvent(FolderDetailEvent.AddMateriClicked) }, modifier = Modifier.size(24.dp)) {
-                Icon(imageVector = Icons.Default.Add, contentDescription = "Tambah Materi", tint = Color.Black)
-            }
-        }
-
-        Spacer(modifier = Modifier.height(16.dp))
-
-        if (uiState.isLoading && uiState.files.isEmpty()) {
-             Box(modifier = Modifier.fillMaxWidth().weight(1f), contentAlignment = Alignment.Center) {
-                CircularProgressIndicator(color = AppColors.Purple)
-            }
-        } else if (uiState.files.isEmpty()) {
-            Box(modifier = Modifier.fillMaxWidth().weight(1f), contentAlignment = Alignment.Center) {
-                Text(text = "Belum ada materi.\nKlik '+' untuk menambahkan.", textAlign = TextAlign.Center, color = Color.Gray)
-            }
-        } else {
-            LazyVerticalGrid(
-                columns = GridCells.Fixed(3),
-                modifier = Modifier.fillMaxWidth().weight(1f),
-                contentPadding = PaddingValues(horizontal = 24.dp, vertical = 8.dp),
-                horizontalArrangement = Arrangement.spacedBy(16.dp),
-                verticalArrangement = Arrangement.spacedBy(24.dp)
-            ) {
-                items(uiState.files) { file ->
-                    val fileType = FileType.fromMimeType(file.mimeType)
-                    Column(
-                        modifier = Modifier.fillMaxWidth().clickable { onEvent(FolderDetailEvent.FileClicked(file)) },
-                        horizontalAlignment = Alignment.CenterHorizontally
-                    ) {
+                Box(modifier = Modifier.background(bannerBg).padding(16.dp)) {
+                    Row(verticalAlignment = Alignment.CenterVertically) {
                         Box(
-                            modifier = Modifier.fillMaxWidth().aspectRatio(1f).clip(RoundedCornerShape(8.dp)).background(Color(0xFFF3F4F6)),
+                            modifier = Modifier
+                                .size(48.dp)
+                                .clip(CircleShape)
+                                .background(if (uiState.isSummarySelectionMode) AppColors.White.copy(alpha = 0.2f) else AppColors.White),
                             contentAlignment = Alignment.Center
                         ) {
-                            when (fileType) {
-                                FileType.IMAGE -> {
-                                    AsyncImage(
-                                        model = file.uri ?: R.drawable.file,
-                                        contentDescription = null,
-                                        modifier = Modifier.fillMaxSize(),
-                                        contentScale = ContentScale.Crop,
-                                        error = painterResource(id = R.drawable.file)
+                            Icon(
+                                imageVector = Icons.Outlined.AutoAwesome,
+                                contentDescription = null,
+                                tint = AppColors.Purple,
+                                modifier = Modifier.size(24.dp)
+                            )
+                        }
+                        Spacer(modifier = Modifier.width(16.dp))
+                        Column(modifier = Modifier.weight(1f)) {
+                            Text(
+                                text = "Ringkasan AI",
+                                fontWeight = FontWeight.Bold,
+                                fontSize = 16.sp,
+                                color = if (uiState.isSummarySelectionMode) AppColors.White else AppColors.TextPrimary
+                            )
+                            Text(
+                                text = if (uiState.isSummarySelectionMode) "Pilih materi untuk dirangkum menggunakan AI." else "Memberikan ringkasan dan poin-poin utama dari materi yang telah dipilih secara instan.",
+                                fontSize = 12.sp,
+                                color = if (uiState.isSummarySelectionMode) AppColors.White.copy(alpha = 0.9f) else AppColors.TextSecondary,
+                                lineHeight = 16.sp
+                            )
+                        }
+                    }
+                }
+            }
+
+            Spacer(modifier = Modifier.height(24.dp))
+
+            OutlinedTextField(
+                value = uiState.searchQuery,
+                onValueChange = { onEvent(FolderDetailEvent.SearchQueryChanged(it)) },
+                placeholder = { Text("Cari materi atau topik...", color = AppColors.TextSecondary, fontSize = 14.sp) },
+                leadingIcon = { Icon(Icons.Default.Search, contentDescription = null, tint = AppColors.TextSecondary) },
+                modifier = Modifier.fillMaxWidth().padding(horizontal = 24.dp),
+                shape = RoundedCornerShape(32.dp),
+                colors = OutlinedTextFieldDefaults.colors(
+                    focusedBorderColor = AppColors.Purple,
+                    unfocusedBorderColor = AppColors.InputBorder,
+                    focusedContainerColor = AppColors.White,
+                    unfocusedContainerColor = AppColors.White
+                ),
+                singleLine = true
+            )
+
+            Spacer(modifier = Modifier.height(24.dp))
+
+            val isEmptyResults = uiState.materials.isEmpty() && uiState.smartSummaries.isEmpty()
+            val isSearching = uiState.searchQuery.isNotEmpty()
+
+            if (uiState.isLoading && isEmptyResults) {
+                Box(modifier = Modifier.fillMaxWidth().weight(1f), contentAlignment = Alignment.Center) {
+                    CircularProgressIndicator(color = AppColors.Purple)
+                }
+            } else {
+                LazyColumn(
+                    modifier = Modifier.fillMaxWidth().weight(1f),
+                    contentPadding = PaddingValues(start = 24.dp, top = 8.dp, end = 24.dp, bottom = if (uiState.isSummarySelectionMode) 100.dp else 24.dp)
+                ) {
+                    if (!uiState.isSummarySelectionMode) {
+                        item {
+                            Row(verticalAlignment = Alignment.CenterVertically) {
+                                Text(text = "Ringkasan", fontSize = 18.sp, fontWeight = FontWeight.Bold, color = AppColors.TextPrimary)
+                                Spacer(modifier = Modifier.width(8.dp))
+                                Icon(imageVector = Icons.Outlined.AutoAwesome, contentDescription = null, tint = AppColors.Purple, modifier = Modifier.size(20.dp))
+                            }
+                            Spacer(modifier = Modifier.height(16.dp))
+                        }
+
+                        item {
+                            val dummySummaries = listOf(
+                                DummyFile(id = "d1", name = "Sel dan Fungsinya", isSmartSummary = true, description = "Ringkasan poin-poin utama tentang struktur sel dan fungsinya. (AI)"),
+                                DummyFile(id = "d2", name = "Genetika Dasar", isSmartSummary = true, description = "Konsep dasar genetika dan pewarisan sifat. (AI)")
+                            )
+                            val displayList = uiState.smartSummaries.ifEmpty { dummySummaries }
+
+                            LazyRow(
+                                horizontalArrangement = Arrangement.spacedBy(16.dp),
+                                contentPadding = PaddingValues(end = 24.dp),
+                                modifier = Modifier.fillMaxWidth()
+                            ) {
+                                items(displayList) { file ->
+                                    SmartSummaryCard(
+                                        file = file,
+                                        modifier = Modifier.width(220.dp).height(150.dp),
+                                        onClick = { onEvent(FolderDetailEvent.FileClicked(file)) },
+                                        onOptions = { onEvent(FolderDetailEvent.ShowFileOptions(file)) }
                                     )
                                 }
-                                FileType.PPT -> Image(painter = painterResource(id = R.drawable.pptx), contentDescription = "PPT Icon", modifier = Modifier.fillMaxSize(0.7f))
-                                FileType.DOCUMENT -> {
-                                    val iconRes = if (file.mimeType == "application/pdf") R.drawable.file else R.drawable.doc
-                                    Image(painter = painterResource(id = iconRes), contentDescription = "Doc Icon", modifier = Modifier.fillMaxSize(0.7f))
-                                }
-                                else -> Icon(imageVector = Icons.Outlined.UploadFile, contentDescription = null, tint = Color.Gray, modifier = Modifier.size(32.dp))
-                            }
-                            if (uiState.isLoading && uiState.selectedFile?.id == file.id) {
-                                CircularProgressIndicator(modifier = Modifier.size(24.dp), strokeWidth = 2.dp, color = AppColors.Purple)
                             }
                         }
-                        Spacer(modifier = Modifier.height(8.dp))
+                        item { Spacer(modifier = Modifier.height(24.dp)) }
+                    }
+
+                    item {
                         Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
-                            Text(text = file.name, fontSize = 12.sp, fontWeight = FontWeight.Medium, color = Color.Black, maxLines = 1, overflow = TextOverflow.Ellipsis, modifier = Modifier.weight(1f))
-                            IconButton(onClick = { onEvent(FolderDetailEvent.ShowFileOptions(file)) }, modifier = Modifier.size(16.dp)) {
-                                Icon(imageVector = Icons.Default.MoreVert, contentDescription = "Options", tint = Color.Gray)
+                            Text(text = "Materi", fontSize = 18.sp, fontWeight = FontWeight.Bold, color = AppColors.TextPrimary)
+                            if (!uiState.isSummarySelectionMode) {
+                                IconButton(onClick = { onEvent(FolderDetailEvent.AddMateriClicked) }, modifier = Modifier.size(24.dp)) {
+                                    Icon(imageVector = Icons.Default.Add, contentDescription = "Tambah Materi", tint = AppColors.TextPrimary)
+                                }
                             }
                         }
+                        Spacer(modifier = Modifier.height(16.dp))
+                    }
+
+                    if (uiState.materials.isNotEmpty()) {
+                        items(uiState.materials.chunkedList(2)) { rowItems ->
+                            Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(16.dp)) {
+                                rowItems.forEach { file ->
+                                    CourseMaterialCard(
+                                        file = file,
+                                        isSelectionMode = uiState.isSummarySelectionMode,
+                                        isSelected = uiState.selectedMaterialIds.contains(file.id),
+                                        modifier = Modifier.weight(1f),
+                                        onClick = { onEvent(FolderDetailEvent.FileClicked(file)) },
+                                        onOptions = { onEvent(FolderDetailEvent.ShowFileOptions(file)) }
+                                    )
+                                }
+                                if (rowItems.size == 1) Spacer(modifier = Modifier.weight(1f))
+                            }
+                            Spacer(modifier = Modifier.height(16.dp))
+                        }
+                    } else if (isEmptyResults) {
+                        item {
+                            Column(
+                                modifier = Modifier.fillMaxWidth().padding(top = 40.dp),
+                                horizontalAlignment = Alignment.CenterHorizontally
+                            ) {
+                                if (isSearching) {
+                                    Icon(imageVector = Icons.Default.Search, contentDescription = null, modifier = Modifier.size(80.dp), tint = AppColors.InputBorder)
+                                    Spacer(modifier = Modifier.height(16.dp))
+                                    Text(text = "Pencarian tidak ditemukan", fontSize = 18.sp, fontWeight = FontWeight.Bold, color = AppColors.TextPrimary)
+                                    Text(text = "Coba kata kunci lain atau periksa ejaanmu.", color = AppColors.TextSecondary, fontSize = 14.sp, textAlign = TextAlign.Center)
+                                } else {
+                                    Icon(imageVector = Icons.Outlined.FolderOpen, contentDescription = null, modifier = Modifier.size(80.dp), tint = AppColors.InputBorder)
+                                    Spacer(modifier = Modifier.height(16.dp))
+                                    Text(text = "Folder kosong", fontSize = 18.sp, fontWeight = FontWeight.Bold, color = AppColors.TextPrimary)
+                                    Text(text = "Belum ada materi atau ringkasan di sini.", color = AppColors.TextSecondary, fontSize = 14.sp)
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
+        AnimatedVisibility(
+            visible = uiState.isSummarySelectionMode,
+            enter = slideInVertically(initialOffsetY = { it }) + fadeIn(),
+            exit = slideOutVertically(targetOffsetY = { it }) + fadeOut(),
+            modifier = Modifier
+                .align(Alignment.BottomCenter)
+                .padding(bottom = 24.dp, start = 24.dp, end = 24.dp)
+                .imePadding()
+        ) {
+            Button(
+                onClick = { onEvent(FolderDetailEvent.ConfirmSmartSummary) },
+                modifier = Modifier.fillMaxWidth().height(56.dp),
+                shape = RoundedCornerShape(16.dp),
+                colors = ButtonDefaults.buttonColors(
+                    containerColor = AppColors.Purple,
+                    disabledContainerColor = AppColors.InputBorder
+                ),
+                enabled = uiState.selectedMaterialIds.isNotEmpty() && !uiState.isLoading
+            ) {
+                if (uiState.isLoading) {
+                    CircularProgressIndicator(modifier = Modifier.size(24.dp), color = AppColors.White, strokeWidth = 2.dp)
+                } else {
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Icon(Icons.Outlined.AutoAwesome, contentDescription = null)
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Text("Buat Smart Summary (${uiState.selectedMaterialIds.size})", fontWeight = FontWeight.Bold, fontSize = 16.sp)
                     }
                 }
             }
@@ -363,7 +421,7 @@ fun FolderDetailScreen(
             onDismiss = { onEvent(FolderDetailEvent.DismissAddFileMenu) },
             items = listOf(
                 ActionMenuItem(
-                    title = "Kamera", subtitle = "Scan catatan fisikmu", icon = Icons.Outlined.CameraAlt, iconTint = Color.White, iconBgColor = AppColors.Purple,
+                    title = "Kamera", subtitle = "Scan catatan fisikmu", icon = Icons.Outlined.CameraAlt, iconTint = AppColors.White, iconBgColor = AppColors.Purple,
                     onClick = {
                         onEvent(FolderDetailEvent.DismissAddFileMenu)
                         val permissionCheck = ContextCompat.checkSelfPermission(context, Manifest.permission.CAMERA)
@@ -371,7 +429,7 @@ fun FolderDetailScreen(
                     }
                 ),
                 ActionMenuItem(
-                    title = "Tambah dari Perangkat", subtitle = "Unggah dokumen PDF atau Gambar", icon = Icons.Outlined.UploadFile, iconTint = AppColors.Purple, iconBgColor = Color(0xFFF3F0EF),
+                    title = "Tambah dari Perangkat", subtitle = "Unggah dokumen PDF atau Gambar", icon = Icons.Outlined.UploadFile, iconTint = AppColors.Purple, iconBgColor = AppColors.BgColor,
                     onClick = { onEvent(FolderDetailEvent.DismissAddFileMenu); filePickerLauncher.launch("*/*") }
                 )
             )
@@ -383,8 +441,19 @@ fun FolderDetailScreen(
             onDismiss = { onEvent(FolderDetailEvent.DismissFileOptions) },
             title = "TINDAKAN FILE",
             items = listOf(
-                ActionMenuItem(title = "Ganti Nama File", subtitle = "Ubah nama file ini", icon = Icons.Default.Edit, iconBgColor = Color(0xFFF3E8FF), onClick = { onEvent(FolderDetailEvent.RenameFileClicked) }),
-                ActionMenuItem(title = "Hapus File", subtitle = "Pindahkan file ke tempat sampah", icon = Icons.Default.DeleteOutline, iconTint = Color.Red, iconBgColor = Color(0xFFFEE2E2), titleColor = Color.Red, onClick = { onEvent(FolderDetailEvent.DeleteFileClicked) })
+                ActionMenuItem(title = "Ganti Nama File", subtitle = "Ubah nama file ini", icon = Icons.Default.Edit, iconBgColor = AppColors.DecorationBot, onClick = { onEvent(FolderDetailEvent.RenameFileClicked) }),
+                ActionMenuItem(title = "Hapus File", subtitle = "Pindahkan file ke tempat sampah", icon = Icons.Default.DeleteOutline, iconTint = AppColors.Error, iconBgColor = AppColors.ErrorSurface, titleColor = AppColors.Error, onClick = { onEvent(FolderDetailEvent.DeleteFileClicked) })
+            )
+        )
+    }
+
+    if (uiState.isFolderOptionsVisible) {
+        ActionSelectionDialog(
+            onDismiss = { onEvent(FolderDetailEvent.DismissFolderOptions) },
+            title = "TINDAKAN FOLDER",
+            items = listOf(
+                ActionMenuItem(title = "Ganti Nama Folder", subtitle = "Ubah nama folder ini", icon = Icons.Default.Edit, iconBgColor = AppColors.DecorationBot, onClick = { onEvent(FolderDetailEvent.RenameFolderClicked) }),
+                ActionMenuItem(title = "Hapus Folder", subtitle = "Hapus folder beserta isinya", icon = Icons.Default.DeleteOutline, iconTint = AppColors.Error, iconBgColor = AppColors.ErrorSurface, titleColor = AppColors.Error, onClick = { onEvent(FolderDetailEvent.DeleteFolderClicked) })
             )
         )
     }
@@ -397,6 +466,14 @@ fun FolderDetailScreen(
         )
     }
 
+    if (uiState.isRenameFolderDialogVisible) {
+        TextInputDialog(
+            title = "Ganti Nama Folder", subtitle = "Masukkan nama baru untuk folder ini.", value = uiState.newFolderName,
+            onValueChange = { onEvent(FolderDetailEvent.NewFolderNameChanged(it)) }, placeholder = "Nama Folder Baru",
+            onDismiss = { onEvent(FolderDetailEvent.DismissRenameFolderDialog) }, onConfirm = { onEvent(FolderDetailEvent.ConfirmRenameFolder) }
+        )
+    }
+
     if (uiState.isDeleteFileDialogVisible) {
         ConfirmationDialog(
             title = "Hapus File", description = "Apakah Anda yakin ingin menghapus file ini?", icon = Icons.Outlined.DeleteForever,
@@ -404,4 +481,201 @@ fun FolderDetailScreen(
             onDismiss = { onEvent(FolderDetailEvent.DismissDeleteFileDialog) }, onConfirm = { onEvent(FolderDetailEvent.ConfirmDeleteFile) }
         )
     }
+
+    if (uiState.isDeleteFolderDialogVisible) {
+        ConfirmationDialog(
+            title = "Hapus Folder", description = "Apakah Anda yakin ingin menghapus folder ini? Seluruh materi di dalamnya akan ikut terhapus.", icon = Icons.Outlined.DeleteForever,
+            confirmButtonText = "Iya, Hapus", dismissButtonText = "Batal",
+            onDismiss = { onEvent(FolderDetailEvent.DismissDeleteFolderDialog) }, onConfirm = { onEvent(FolderDetailEvent.ConfirmDeleteFolder) }
+        )
+    }
+}
+
+@Composable
+private fun SmartSummaryCard(
+    file: DummyFile,
+    modifier: Modifier = Modifier,
+    onClick: () -> Unit,
+    onOptions: () -> Unit
+) {
+    Card(
+        modifier = modifier
+            .clickable { onClick() },
+        shape = RoundedCornerShape(16.dp),
+        colors = CardDefaults.cardColors(containerColor = AppColors.DecorationBot),
+        border = BorderStroke(1.dp, AppColors.PurpleDot)
+    ) {
+        Column(modifier = Modifier.fillMaxSize().padding(16.dp)) {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.Top
+            ) {
+                val icon = when {
+                    file.name.contains("Sel", true) -> Icons.Default.BrightnessLow
+                    file.name.contains("Genetik", true) -> Icons.Default.Hub
+                    else -> Icons.Outlined.AutoAwesome
+                }
+                Icon(
+                    imageVector = icon,
+                    contentDescription = null,
+                    tint = AppColors.PurpleDark,
+                    modifier = Modifier.size(36.dp)
+                )
+
+                IconButton(
+                    onClick = onOptions,
+                    modifier = Modifier.size(24.dp)
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.MoreVert,
+                        contentDescription = "More",
+                        tint = AppColors.TextSecondary,
+                        modifier = Modifier.size(16.dp)
+                    )
+                }
+            }
+
+            Spacer(modifier = Modifier.weight(1f))
+
+            Text(
+                text = file.name,
+                fontWeight = FontWeight.Bold,
+                fontSize = 18.sp,
+                color = AppColors.TextPrimary,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis
+            )
+            
+            Spacer(modifier = Modifier.height(6.dp))
+
+            Text(
+                text = file.description,
+                fontSize = 13.sp,
+                color = AppColors.TextSecondary,
+                maxLines = 2,
+                lineHeight = 16.sp,
+                overflow = TextOverflow.Ellipsis
+            )
+        }
+    }
+}
+
+@Composable
+private fun CourseMaterialCard(
+    file: DummyFile,
+    isSelectionMode: Boolean = false,
+    isSelected: Boolean = false,
+    modifier: Modifier = Modifier,
+    onClick: () -> Unit,
+    onOptions: () -> Unit
+) {
+    val nameLower = file.name.lowercase()
+    val isImage = file.mimeType.startsWith("image", ignoreCase = true) || 
+                  nameLower.endsWith(".jpg") || nameLower.endsWith(".jpeg") || 
+                  nameLower.endsWith(".png") || nameLower.endsWith(".webp") ||
+                  FileType.fromMimeType(file.mimeType) == FileType.IMAGE
+
+    Card(
+        modifier = modifier
+            .height(110.dp)
+            .clickable { onClick() },
+        shape = RoundedCornerShape(16.dp),
+        colors = CardDefaults.cardColors(
+            containerColor = if (isSelectionMode && isSelected) AppColors.Purple.copy(alpha = 0.08f) else (if (isImage) Color.Transparent else AppColors.White)
+        ),
+        border = BorderStroke(
+            width = if (isSelectionMode && isSelected) 2.dp else 1.dp,
+            color = if (isSelectionMode && isSelected) AppColors.Purple else AppColors.BgColor
+        )
+    ) {
+        Box(modifier = Modifier.fillMaxSize()) {
+            if (isImage) {
+                AsyncImage(
+                    model = file.uri ?: R.drawable.file,
+                    contentDescription = null,
+                    modifier = Modifier.fillMaxSize(),
+                    contentScale = ContentScale.Crop,
+                    error = painterResource(id = R.drawable.file)
+                )
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .align(Alignment.BottomStart)
+                        .background(
+                            Brush.verticalGradient(
+                                listOf(Color.Transparent, Color.Black.copy(alpha = 0.7f))
+                            )
+                        )
+                        .padding(8.dp)
+                ) {
+                    Column {
+                        Text(text = file.name, fontWeight = FontWeight.Bold, fontSize = 12.sp, color = AppColors.White, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                        val typeStr = when {
+                            file.mimeType.startsWith("image") || nameLower.endsWith(".jpg") || nameLower.endsWith(".jpeg") || nameLower.endsWith(".png") -> "IMG"
+                            else -> "FILE"
+                        }
+                        Text(text = typeStr, fontSize = 10.sp, color = AppColors.White.copy(alpha = 0.8f))
+                    }
+                }
+            } else {
+                Column(modifier = Modifier.padding(12.dp).fillMaxWidth()) {
+                    val iconRes = when {
+                        file.mimeType == "application/pdf" || nameLower.endsWith(".pdf") -> R.drawable.file
+                        file.mimeType.contains("word") || file.mimeType.contains("officedocument.wordprocessingml") || nameLower.endsWith(".doc") || nameLower.endsWith(".docx") -> R.drawable.doc
+                        FileType.fromMimeType(file.mimeType) == FileType.PPT || nameLower.endsWith(".ppt") || nameLower.endsWith(".pptx") -> R.drawable.pptx
+                        else -> R.drawable.file
+                    }
+                    Image(painter = painterResource(id = iconRes), contentDescription = null, modifier = Modifier.size(32.dp))
+                    Spacer(modifier = Modifier.height(12.dp))
+                    Text(text = file.name, fontWeight = FontWeight.Bold, fontSize = 13.sp, color = AppColors.TextPrimary, maxLines = 1, overflow = TextOverflow.Ellipsis, modifier = Modifier.padding(end = 40.dp))
+                    val typeStr = when {
+                        file.mimeType == "application/pdf" || nameLower.endsWith(".pdf") -> "PDF"
+                        file.mimeType.contains("word") || file.mimeType.contains("officedocument.wordprocessingml") || nameLower.endsWith(".doc") || nameLower.endsWith(".docx") -> "DOC"
+                        FileType.fromMimeType(file.mimeType) == FileType.PPT || nameLower.endsWith(".ppt") || nameLower.endsWith(".pptx") -> "PPT"
+                        else -> "FILE"
+                    }
+                    Text(text = typeStr, fontSize = 10.sp, color = AppColors.TextSecondary)
+                }
+            }
+            
+            if (isSelectionMode) {
+                Box(
+                    modifier = Modifier
+                        .align(Alignment.TopEnd)
+                        .padding(10.dp)
+                        .size(24.dp)
+                        .clip(CircleShape)
+                        .background(if (isSelected) AppColors.Purple else AppColors.White.copy(alpha = 0.8f))
+                        .border(1.5.dp, if (isSelected) AppColors.Purple else AppColors.TextSecondary.copy(alpha = 0.5f), CircleShape),
+                    contentAlignment = Alignment.Center
+                ) {
+                    if (isSelected) {
+                        Icon(Icons.Default.Check, contentDescription = "Selected", tint = AppColors.White, modifier = Modifier.size(14.dp))
+                    }
+                }
+            } else {
+                Row(
+                    modifier = Modifier.align(Alignment.TopEnd).padding(top = 4.dp, end = 4.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    val tint = if (isImage) AppColors.White else AppColors.TextSecondary
+                    Icon(imageVector = Icons.Outlined.FileDownload, contentDescription = null, tint = tint, modifier = Modifier.size(18.dp))
+                    IconButton(onClick = onOptions, modifier = Modifier.size(28.dp)) {
+                        Icon(imageVector = Icons.Default.MoreVert, contentDescription = null, tint = tint, modifier = Modifier.size(16.dp))
+                    }
+                }
+            }
+        }
+    }
+}
+
+private fun <T> List<T>.chunkedList(size: Int): List<List<T>> {
+    val result = mutableListOf<List<T>>()
+    var i = 0
+    while (i < this.size) {
+        result.add(subList(i, Math.min(i + size, this.size)))
+        i += size
+    }
+    return result
 }
