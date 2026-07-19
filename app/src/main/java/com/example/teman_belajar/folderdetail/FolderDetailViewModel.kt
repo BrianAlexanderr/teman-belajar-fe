@@ -147,17 +147,14 @@ class FolderDetailViewModel(application: Application) : AndroidViewModel(applica
     var onNavigateToSummaryDetail: (() -> Unit)? = null
 
     fun setFolderData(id: String, name: String) {
-        if (id.isEmpty() || _uiState.value.folderId == id) return
+        if (id.isEmpty()) return
 
-        _uiState.update { it.copy(
+        // Force reset the state to default whenever new folder data is set
+        _uiState.value = FolderDetailUiState(
             folderId = id,
             folderName = name,
-            isLoading = true,
-            allFiles = emptyList(),
-            materials = emptyList(),
-            smartSummaries = emptyList(),
-            errorMessage = null
-        ) }
+            isLoading = true
+        )
 
         loadMaterials(id)
     }
@@ -376,6 +373,14 @@ class FolderDetailViewModel(application: Application) : AndroidViewModel(applica
         }
     }
 
+    private fun parseError(response: retrofit2.Response<*>): String {
+        return try {
+            val errorBody = response.errorBody()?.string()
+            if (errorBody != null) JSONObject(errorBody).optString("message", "Gagal")
+            else "Gagal"
+        } catch (_: Exception) { "Gagal" }
+    }
+
     fun onEvent(event: FolderDetailEvent) {
         when (event) {
             FolderDetailEvent.NavigateBack -> {
@@ -455,8 +460,7 @@ class FolderDetailViewModel(application: Application) : AndroidViewModel(applica
                 _uiState.update { it.copy(
                     isSummarySelectionMode = false,
                     selectedMaterialIds = emptySet(),
-                    isLoading = false,
-                    searchQuery = ""
+                    isLoading = false
                 ) }
 
                 viewModelScope.launch {
@@ -477,7 +481,6 @@ class FolderDetailViewModel(application: Application) : AndroidViewModel(applica
                     return
                 }
                 if (file.isSmartSummary) {
-                    _uiState.update { it.copy(searchQuery = "") }
                     onNavigateToSummaryDetail?.invoke()
                     return
                 }
