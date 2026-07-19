@@ -8,6 +8,7 @@ import androidx.lifecycle.viewModelScope
 import com.example.teman_belajar.fetch.ApiService
 import com.example.teman_belajar.fetch.model.MaterialUploadRequest
 import com.example.teman_belajar.fetch.model.MaterialUploadSuccessRequest
+import com.example.teman_belajar.fetch.model.RenameFolderRequest
 import com.example.teman_belajar.fetch.model.RenameMaterialRequest
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
@@ -26,6 +27,7 @@ import okhttp3.Request
 import okhttp3.RequestBody
 import okio.BufferedSink
 import org.json.JSONObject
+import java.util.UUID
 
 enum class FileType(val mimeTypes: List<String>) {
     IMAGE(listOf("image/jpeg", "image/jpg", "image/png", "image/webp", "image/heic", "image/heif")),
@@ -54,7 +56,10 @@ data class DummyFile(
     val id: String,
     val name: String,
     val mimeType: String = "",
-    val uri: String? = null
+    val uri: String? = null,
+    val isSmartSummary: Boolean = false,
+    val size: String = "0 MB",
+    val description: String = ""
 )
 
 data class FolderDetailUiState(
@@ -69,15 +74,22 @@ data class FolderDetailUiState(
     val fileCounter: Int = 1,
     val newFileName: String = "",
     val allFiles: List<DummyFile> = emptyList(),
-    val files: List<DummyFile> = emptyList(),
+    val materials: List<DummyFile> = emptyList(),
+    val smartSummaries: List<DummyFile> = emptyList(),
 
     val isFileOptionsVisible: Boolean = false,
     val isRenameFileDialogVisible: Boolean = false,
     val isDeleteFileDialogVisible: Boolean = false,
     val selectedFile: DummyFile? = null,
 
+    val isFolderOptionsVisible: Boolean = false,
+    val isRenameFolderDialogVisible: Boolean = false,
+    val isDeleteFolderDialogVisible: Boolean = false,
+    val newFolderName: String = "",
+
     val isGenerateQuizSelected: Boolean = false,
-    val isSmartSummarySelected: Boolean = false,
+    val isSummarySelectionMode: Boolean = false,
+    val selectedMaterialIds: Set<String> = emptySet(),
 
     val pendingDeleteIds: Set<String> = emptySet()
 )
@@ -102,6 +114,21 @@ sealed class FolderDetailEvent {
     object DismissDeleteFileDialog : FolderDetailEvent()
     object ConfirmRenameFile : FolderDetailEvent()
     object ConfirmDeleteFile : FolderDetailEvent()
+
+    object ShowFolderOptions : FolderDetailEvent()
+    object DismissFolderOptions : FolderDetailEvent()
+    object RenameFolderClicked : FolderDetailEvent()
+    object DeleteFolderClicked : FolderDetailEvent()
+    data class NewFolderNameChanged(val name: String) : FolderDetailEvent()
+    object DismissRenameFolderDialog : FolderDetailEvent()
+    object DismissDeleteFolderDialog : FolderDetailEvent()
+    object ConfirmRenameFolder : FolderDetailEvent()
+    object ConfirmDeleteFolder : FolderDetailEvent()
+
+    data class ToggleMaterialSelection(val fileId: String) : FolderDetailEvent()
+    object ConfirmSmartSummary : FolderDetailEvent()
+    object CancelSummarySelection : FolderDetailEvent()
+
     object ClearError : FolderDetailEvent()
     object ClearSuccessMessage : FolderDetailEvent()
     data class FileClicked(val file: DummyFile) : FolderDetailEvent()
@@ -117,6 +144,7 @@ class FolderDetailViewModel(application: Application) : AndroidViewModel(applica
 
     var onNavigateBack: (() -> Unit)? = null
     var onOpenFile: ((String, String) -> Unit)? = null
+    var onNavigateToSummaryDetail: (() -> Unit)? = null
 
     fun setFolderData(id: String, name: String) {
         if (id.isEmpty() || _uiState.value.folderId == id) return
@@ -126,7 +154,8 @@ class FolderDetailViewModel(application: Application) : AndroidViewModel(applica
             folderName = name,
             isLoading = true,
             allFiles = emptyList(),
-            files = emptyList(),
+            materials = emptyList(),
+            smartSummaries = emptyList(),
             errorMessage = null
         ) }
 
@@ -149,11 +178,17 @@ class FolderDetailViewModel(application: Application) : AndroidViewModel(applica
                             apiService.getMaterialInfo(material.fileId, material.fileName)
                         } catch (e: Exception) { null }
                         val url = if (infoResponse?.isSuccessful == true) infoResponse.body()?.url else null
+                        
+                        val isAI = material.fileType == "SUMMARY" || material.fileName.contains("(AI)", ignoreCase = true)
+                        
                         DummyFile(
                             id = material.fileId,
                             name = material.fileName,
                             mimeType = material.fileType,
-                            uri = url
+                            uri = url,
+                            isSmartSummary = isAI,
+                            description = if (isAI) "Ringkasan poin-poin utama. (AI)" else "",
+                            size = if (!isAI) "5 MB" else "0 MB"
                         )
                     }
                 }
@@ -176,9 +211,11 @@ class FolderDetailViewModel(application: Application) : AndroidViewModel(applica
             try {
                 val files = fetchMaterialsInternal(folderId)
                 _uiState.update { state ->
+                    val filtered = files.filter { it.name.contains(state.searchQuery, ignoreCase = true) }
                     state.copy(
                         allFiles = files,
-                        files = files.filter { it.name.contains(state.searchQuery, ignoreCase = true) },
+                        materials = filtered.filter { !it.isSmartSummary },
+                        smartSummaries = filtered.filter { it.isSmartSummary },
                         isLoading = false
                     )
                 }
@@ -205,7 +242,6 @@ class FolderDetailViewModel(application: Application) : AndroidViewModel(applica
                     val materialId = body?.fileName ?: ""
 
                     if (signedUrl.isNotEmpty()) {
-                        val context = getApplication<Application>()
                         val contentUri = uriString.toUri()
                         val inputStream = getApplication<Application>().contentResolver.openInputStream(contentUri)
                         val fileBytes = inputStream?.use { it.readBytes() }
@@ -223,10 +259,8 @@ class FolderDetailViewModel(application: Application) : AndroidViewModel(applica
 
                             if (putCode in 200..299) {
                                 if (apiService.notifyUploadSuccess(MaterialUploadSuccessRequest(materialId, signedUrl.substringBefore("?"))).isSuccessful) {
-                                    val files = fetchMaterialsInternal(folderId)
+                                    loadMaterials(folderId)
                                     _uiState.update { it.copy(
-                                        allFiles = files,
-                                        files = files,
                                         searchQuery = "",
                                         successMessage = "Berhasil diunggah!",
                                         isLoading = false
@@ -249,9 +283,11 @@ class FolderDetailViewModel(application: Application) : AndroidViewModel(applica
 
         _uiState.update { state ->
             val updated = state.allFiles.filter { it.id != file.id }
+            val filtered = updated.filter { it.name.contains(state.searchQuery, ignoreCase = true) }
             state.copy(
                 allFiles = updated,
-                files = updated.filter { it.name.contains(state.searchQuery, ignoreCase = true) },
+                materials = filtered.filter { !it.isSmartSummary },
+                smartSummaries = filtered.filter { it.isSmartSummary },
                 isDeleteFileDialogVisible = false,
                 selectedFile = null,
                 isFileOptionsVisible = false,
@@ -264,10 +300,10 @@ class FolderDetailViewModel(application: Application) : AndroidViewModel(applica
                 if (apiService.deleteMaterial(file.id).isSuccessful) {
                     _uiState.update { it.copy(successMessage = "Terhapus!") }
                 } else {
-                    _uiState.update { it.copy(allFiles = oldState.allFiles, files = oldState.files) }
+                    _uiState.update { it.copy(allFiles = oldState.allFiles, materials = oldState.materials, smartSummaries = oldState.smartSummaries) }
                 }
             } catch (e: Exception) {
-                _uiState.update { it.copy(allFiles = oldState.allFiles, files = oldState.files) }
+                _uiState.update { it.copy(allFiles = oldState.allFiles, materials = oldState.materials, smartSummaries = oldState.smartSummaries) }
             }
         }
     }
@@ -280,9 +316,11 @@ class FolderDetailViewModel(application: Application) : AndroidViewModel(applica
         val oldState = _uiState.value
         _uiState.update { state ->
             val updated = state.allFiles.map { if (it.id == file.id) it.copy(name = newName) else it }
+            val filtered = updated.filter { it.name.contains(state.searchQuery, ignoreCase = true) }
             state.copy(
                 allFiles = updated,
-                files = updated.filter { it.name.contains(state.searchQuery, ignoreCase = true) },
+                materials = filtered.filter { !it.isSmartSummary },
+                smartSummaries = filtered.filter { it.isSmartSummary },
                 isRenameFileDialogVisible = false,
                 selectedFile = null
             )
@@ -293,20 +331,49 @@ class FolderDetailViewModel(application: Application) : AndroidViewModel(applica
                 if (apiService.renameMaterial(RenameMaterialRequest(file.id, newName)).isSuccessful) {
                     _uiState.update { it.copy(successMessage = "Nama diubah!") }
                 } else {
-                    _uiState.update { it.copy(allFiles = oldState.allFiles, files = oldState.files) }
+                    _uiState.update { it.copy(allFiles = oldState.allFiles, materials = oldState.materials, smartSummaries = oldState.smartSummaries) }
                 }
             } catch (e: Exception) {
-                _uiState.update { it.copy(allFiles = oldState.allFiles, files = oldState.files) }
+                _uiState.update { it.copy(allFiles = oldState.allFiles, materials = oldState.materials, smartSummaries = oldState.smartSummaries) }
             }
         }
     }
 
-    private fun parseError(response: retrofit2.Response<*>): String {
-        return try {
-            val errorBody = response.errorBody()?.string()
-            if (errorBody != null) JSONObject(errorBody).optString("message", "Gagal")
-            else "Gagal"
-        } catch (_: Exception) { "Gagal" }
+    private fun renameFolder() {
+        val folderId = _uiState.value.folderId
+        val newName = _uiState.value.newFolderName.trim()
+        if (folderId.isEmpty() || newName.isEmpty()) return
+
+        viewModelScope.launch {
+            try {
+                val response = apiService.renameFolder(RenameFolderRequest(UUID.fromString(folderId), newName))
+                if (response.isSuccessful) {
+                    _uiState.update { it.copy(folderName = newName, isRenameFolderDialogVisible = false, successMessage = "Folder diubah!") }
+                } else {
+                    _uiState.update { it.copy(errorMessage = "Gagal mengubah folder") }
+                }
+            } catch (e: Exception) {
+                _uiState.update { it.copy(errorMessage = e.message) }
+            }
+        }
+    }
+
+    private fun deleteFolder() {
+        val folderId = _uiState.value.folderId
+        if (folderId.isEmpty()) return
+
+        viewModelScope.launch {
+            try {
+                val response = apiService.deleteFolder(UUID.fromString(folderId))
+                if (response.isSuccessful) {
+                    onNavigateBack?.invoke()
+                } else {
+                    _uiState.update { it.copy(errorMessage = "Gagal menghapus folder") }
+                }
+            } catch (e: Exception) {
+                _uiState.update { it.copy(errorMessage = e.message) }
+            }
+        }
     }
 
     fun onEvent(event: FolderDetailEvent) {
@@ -318,9 +385,11 @@ class FolderDetailViewModel(application: Application) : AndroidViewModel(applica
             FolderDetailEvent.Refresh -> loadMaterials(_uiState.value.folderId)
             is FolderDetailEvent.SearchQueryChanged -> {
                 _uiState.update { state ->
+                    val filtered = state.allFiles.filter { it.name.contains(event.query, ignoreCase = true) }
                     state.copy(
                         searchQuery = event.query,
-                        files = state.allFiles.filter { it.name.contains(event.query, ignoreCase = true) }
+                        materials = filtered.filter { !it.isSmartSummary },
+                        smartSummaries = filtered.filter { it.isSmartSummary }
                     )
                 }
             }
@@ -339,23 +408,79 @@ class FolderDetailViewModel(application: Application) : AndroidViewModel(applica
             FolderDetailEvent.DismissDeleteFileDialog -> _uiState.update { it.copy(isDeleteFileDialogVisible = false, selectedFile = null) }
             FolderDetailEvent.ConfirmRenameFile -> renameMaterial()
             FolderDetailEvent.ConfirmDeleteFile -> { _uiState.value.selectedFile?.let { deleteMaterial(it) } }
-            FolderDetailEvent.ClearError -> _uiState.update { it.copy(errorMessage = null) }
-            FolderDetailEvent.ClearSuccessMessage -> _uiState.update { it.copy(successMessage = null) }
+
+            FolderDetailEvent.ShowFolderOptions -> _uiState.update { it.copy(isFolderOptionsVisible = true) }
+            FolderDetailEvent.DismissFolderOptions -> _uiState.update { it.copy(isFolderOptionsVisible = false) }
+            FolderDetailEvent.RenameFolderClicked -> _uiState.update { it.copy(isFolderOptionsVisible = false, isRenameFolderDialogVisible = true, newFolderName = it.folderName) }
+            FolderDetailEvent.DeleteFolderClicked -> _uiState.update { it.copy(isFolderOptionsVisible = false, isDeleteFolderDialogVisible = true) }
+            is FolderDetailEvent.NewFolderNameChanged -> _uiState.update { it.copy(newFolderName = event.name) }
+            FolderDetailEvent.DismissRenameFolderDialog -> _uiState.update { it.copy(isRenameFolderDialogVisible = false) }
+            FolderDetailEvent.DismissDeleteFolderDialog -> _uiState.update { it.copy(isDeleteFolderDialogVisible = false) }
+            FolderDetailEvent.ConfirmRenameFolder -> renameFolder()
+            FolderDetailEvent.ConfirmDeleteFolder -> deleteFolder()
 
             FolderDetailEvent.GenerateQuizClicked -> {
-                _uiState.update { state ->
-                    val next = !state.isGenerateQuizSelected
-                    state.copy(isGenerateQuizSelected = next, isSmartSummarySelected = if (next) false else state.isSmartSummarySelected)
+                viewModelScope.launch {
+                    try {
+                        val res = apiService.generateQuiz(_uiState.value.folderId)
+                        if (res.isSuccessful) _uiState.update { it.copy(successMessage = "Kuis sedang dibuat!") }
+                    } catch (e: Exception) {}
                 }
             }
             FolderDetailEvent.SmartSummaryClicked -> {
+                _uiState.update { it.copy(isSummarySelectionMode = true, selectedMaterialIds = emptySet()) }
+            }
+            is FolderDetailEvent.ToggleMaterialSelection -> {
                 _uiState.update { state ->
-                    val next = !state.isSmartSummarySelected
-                    state.copy(isSmartSummarySelected = next, isGenerateQuizSelected = if (next) false else state.isGenerateQuizSelected)
+                    val next = if (state.selectedMaterialIds.contains(event.fileId)) {
+                        state.selectedMaterialIds - event.fileId
+                    } else {
+                        state.selectedMaterialIds + event.fileId
+                    }
+                    state.copy(selectedMaterialIds = next)
                 }
             }
+            FolderDetailEvent.CancelSummarySelection -> {
+                _uiState.update { it.copy(isSummarySelectionMode = false, selectedMaterialIds = emptySet()) }
+            }
+            FolderDetailEvent.ConfirmSmartSummary -> {
+                val selectedIds = _uiState.value.selectedMaterialIds
+                if (selectedIds.isEmpty()) {
+                    _uiState.update { it.copy(errorMessage = "Pilih minimal satu materi") }
+                    return
+                }
+                
+                onNavigateToSummaryDetail?.invoke()
+
+                _uiState.update { it.copy(
+                    isSummarySelectionMode = false,
+                    selectedMaterialIds = emptySet(),
+                    isLoading = false,
+                    searchQuery = ""
+                ) }
+
+                viewModelScope.launch {
+                    try {
+                        apiService.smartSummary(_uiState.value.folderId)
+                    } catch (e: Exception) {
+                    }
+                }
+            }
+
+            FolderDetailEvent.ClearError -> _uiState.update { it.copy(errorMessage = null) }
+            FolderDetailEvent.ClearSuccessMessage -> _uiState.update { it.copy(successMessage = null) }
+
             is FolderDetailEvent.FileClicked -> {
                 val file = event.file
+                if (_uiState.value.isSummarySelectionMode && !file.isSmartSummary) {
+                    onEvent(FolderDetailEvent.ToggleMaterialSelection(file.id))
+                    return
+                }
+                if (file.isSmartSummary) {
+                    _uiState.update { it.copy(searchQuery = "") }
+                    onNavigateToSummaryDetail?.invoke()
+                    return
+                }
                 if (file.uri != null) onOpenFile?.invoke(file.uri, file.mimeType)
                 else {
                     viewModelScope.launch {
