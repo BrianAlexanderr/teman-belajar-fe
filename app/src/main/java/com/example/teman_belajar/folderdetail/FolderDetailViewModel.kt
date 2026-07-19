@@ -132,6 +132,7 @@ sealed class FolderDetailEvent {
     object ClearError : FolderDetailEvent()
     object ClearSuccessMessage : FolderDetailEvent()
     data class FileClicked(val file: DummyFile) : FolderDetailEvent()
+    data class DownloadFileClicked(val file: DummyFile) : FolderDetailEvent()
 }
 
 class FolderDetailViewModel(application: Application) : AndroidViewModel(application) {
@@ -149,7 +150,6 @@ class FolderDetailViewModel(application: Application) : AndroidViewModel(applica
     fun setFolderData(id: String, name: String) {
         if (id.isEmpty()) return
 
-        // Force reset the state to default whenever new folder data is set
         _uiState.value = FolderDetailUiState(
             folderId = id,
             folderName = name,
@@ -384,7 +384,6 @@ class FolderDetailViewModel(application: Application) : AndroidViewModel(applica
     fun onEvent(event: FolderDetailEvent) {
         when (event) {
             FolderDetailEvent.NavigateBack -> {
-                _uiState.value = FolderDetailUiState()
                 onNavigateBack?.invoke()
             }
             FolderDetailEvent.Refresh -> loadMaterials(_uiState.value.folderId)
@@ -496,6 +495,10 @@ class FolderDetailViewModel(application: Application) : AndroidViewModel(applica
                         }
                     }
                 }
+            }
+            is FolderDetailEvent.DownloadFileClicked -> {
+                // TODO: Hit API download di sini nanti
+                _uiState.update { it.copy(successMessage = "Memulai download: ${event.file.name}") }
             }
         }
     }

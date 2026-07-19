@@ -133,12 +133,6 @@ fun FolderDetailScreen(
         }
     }
 
-    DisposableEffect(Unit) {
-        onDispose {
-            onEvent(FolderDetailEvent.SearchQueryChanged(""))
-        }
-    }
-
     val takePictureLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.TakePicturePreview()
     ) { bitmap ->
@@ -241,7 +235,7 @@ fun FolderDetailScreen(
                 } else {
                     LazyColumn(
                         modifier = Modifier.fillMaxSize(),
-                        contentPadding = PaddingValues(start = 24.dp, top = 8.dp, end = 24.dp, bottom = if (uiState.isSummarySelectionMode) 100.dp else 24.dp)
+                        contentPadding = PaddingValues(start = 24.dp, top = 8.dp, end = 24.dp, bottom = if (uiState.isSummarySelectionMode) 120.dp else 24.dp)
                     ) {
                         item {
                             val bannerBg = if (uiState.isSummarySelectionMode) {
