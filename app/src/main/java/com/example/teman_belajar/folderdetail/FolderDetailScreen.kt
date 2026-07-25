@@ -1,11 +1,13 @@
 package com.example.teman_belajar.folderdetail
 
 import android.Manifest
+import android.app.DownloadManager
 import android.content.Context
 import android.content.Intent
 import android.content.pm.PackageManager
 import android.graphics.Bitmap
 import android.net.Uri
+import android.os.Environment
 import android.provider.OpenableColumns
 import android.widget.Toast
 import androidx.activity.compose.rememberLauncherForActivityResult
@@ -75,6 +77,28 @@ private fun saveBitmapToInternalStorage(context: Context, bitmap: Bitmap): Uri? 
     }
 }
 
+/**
+ * Menggunakan DownloadManager untuk mengunduh file langsung ke folder Downloads perangkat.
+ */
+fun downloadFile(context: Context, url: String, fileName: String) {
+    try {
+        val request = DownloadManager.Request(Uri.parse(url))
+            .setTitle(fileName)
+            .setDescription("Sedang mengunduh materi...")
+            .setNotificationVisibility(DownloadManager.Request.VISIBILITY_VISIBLE_NOTIFY_COMPLETED)
+            .setDestinationInExternalPublicDir(Environment.DIRECTORY_DOWNLOADS, fileName)
+            .setAllowedOverMetered(true)
+            .setAllowedOverRoaming(true)
+
+        val downloadManager = context.getSystemService(Context.DOWNLOAD_SERVICE) as DownloadManager
+        downloadManager.enqueue(request)
+        Toast.makeText(context, "Mulai mengunduh...", Toast.LENGTH_SHORT).show()
+    } catch (e: Exception) {
+        e.printStackTrace()
+        Toast.makeText(context, "Gagal mengunduh file", Toast.LENGTH_SHORT).show()
+    }
+}
+
 fun openFile(context: Context, uriString: String?, mimeType: String) {
     if (uriString.isNullOrEmpty()) {
         Toast.makeText(context, "URL kosong", Toast.LENGTH_SHORT).show()
@@ -130,6 +154,9 @@ fun FolderDetailScreen(
     LaunchedEffect(Unit) {
         viewModel.onOpenFile = { url, mimeType ->
             openFile(context, url, mimeType)
+        }
+        viewModel.onDownloadFile = { url, fileName ->
+            downloadFile(context, url, fileName)
         }
     }
 
@@ -367,7 +394,8 @@ fun FolderDetailScreen(
                                             isSelected = uiState.selectedMaterialIds.contains(file.id),
                                             modifier = Modifier.weight(1f),
                                             onClick = { onEvent(FolderDetailEvent.FileClicked(file)) },
-                                            onOptions = { onEvent(FolderDetailEvent.ShowFileOptions(file)) }
+                                            onOptions = { onEvent(FolderDetailEvent.ShowFileOptions(file)) },
+                                            onDownload = { onEvent(FolderDetailEvent.DownloadFileClicked(file)) }
                                         )
                                     }
                                     if (rowItems.size == 1) Spacer(modifier = Modifier.weight(1f))
@@ -405,7 +433,7 @@ fun FolderDetailScreen(
             modifier = Modifier
                 .align(Alignment.BottomCenter)
                 .navigationBarsPadding()
-                .padding(bottom = 32.dp, start = 24.dp, end = 24.dp)
+                .padding(bottom = 64.dp, start = 24.dp, end = 24.dp)
                 .imePadding()
         ) {
             Button(
@@ -572,7 +600,8 @@ private fun CourseMaterialCard(
     isSelected: Boolean = false,
     modifier: Modifier = Modifier,
     onClick: () -> Unit,
-    onOptions: () -> Unit
+    onOptions: () -> Unit,
+    onDownload: () -> Unit
 ) {
     val nameLower = file.name.lowercase()
     val isImage = file.mimeType.startsWith("image", ignoreCase = true) || 
@@ -664,7 +693,9 @@ private fun CourseMaterialCard(
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     val tint = if (isImage) AppColors.White else AppColors.TextSecondary
-                    Icon(imageVector = Icons.Outlined.FileDownload, contentDescription = null, tint = tint, modifier = Modifier.size(18.dp))
+                    IconButton(onClick = onDownload, modifier = Modifier.size(28.dp)) {
+                        Icon(imageVector = Icons.Outlined.FileDownload, contentDescription = "Download", tint = tint, modifier = Modifier.size(18.dp))
+                    }
                     IconButton(onClick = onOptions, modifier = Modifier.size(28.dp)) {
                         Icon(imageVector = Icons.Default.MoreVert, contentDescription = null, tint = tint, modifier = Modifier.size(16.dp))
                     }
