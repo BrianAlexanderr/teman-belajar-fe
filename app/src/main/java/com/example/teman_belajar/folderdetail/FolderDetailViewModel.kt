@@ -132,6 +132,7 @@ sealed class FolderDetailEvent {
     object ClearError : FolderDetailEvent()
     object ClearSuccessMessage : FolderDetailEvent()
     data class FileClicked(val file: DummyFile) : FolderDetailEvent()
+    data class DownloadFileClicked(val file: DummyFile) : FolderDetailEvent()
 }
 
 class FolderDetailViewModel(application: Application) : AndroidViewModel(application) {
@@ -144,12 +145,12 @@ class FolderDetailViewModel(application: Application) : AndroidViewModel(applica
 
     var onNavigateBack: (() -> Unit)? = null
     var onOpenFile: ((String, String) -> Unit)? = null
+    var onDownloadFile: ((String, String) -> Unit)? = null
     var onNavigateToSummaryDetail: (() -> Unit)? = null
 
     fun setFolderData(id: String, name: String) {
         if (id.isEmpty()) return
 
-        // Force reset the state to default whenever new folder data is set
         _uiState.value = FolderDetailUiState(
             folderId = id,
             folderName = name,
@@ -373,18 +374,9 @@ class FolderDetailViewModel(application: Application) : AndroidViewModel(applica
         }
     }
 
-    private fun parseError(response: retrofit2.Response<*>): String {
-        return try {
-            val errorBody = response.errorBody()?.string()
-            if (errorBody != null) JSONObject(errorBody).optString("message", "Gagal")
-            else "Gagal"
-        } catch (_: Exception) { "Gagal" }
-    }
-
     fun onEvent(event: FolderDetailEvent) {
         when (event) {
             FolderDetailEvent.NavigateBack -> {
-                _uiState.value = FolderDetailUiState()
                 onNavigateBack?.invoke()
             }
             FolderDetailEvent.Refresh -> loadMaterials(_uiState.value.folderId)
@@ -416,7 +408,10 @@ class FolderDetailViewModel(application: Application) : AndroidViewModel(applica
 
             FolderDetailEvent.ShowFolderOptions -> _uiState.update { it.copy(isFolderOptionsVisible = true) }
             FolderDetailEvent.DismissFolderOptions -> _uiState.update { it.copy(isFolderOptionsVisible = false) }
-            FolderDetailEvent.RenameFolderClicked -> _uiState.update { it.copy(isFolderOptionsVisible = false, isRenameFolderDialogVisible = true, newFolderName = it.folderName) }
+            FolderDetailEvent.RenameFolderClicked -> {
+                val folderName = _uiState.value.folderName
+                _uiState.update { it.copy(isFolderOptionsVisible = false, isRenameFolderDialogVisible = true, newFolderName = folderName) }
+            }
             FolderDetailEvent.DeleteFolderClicked -> _uiState.update { it.copy(isFolderOptionsVisible = false, isDeleteFolderDialogVisible = true) }
             is FolderDetailEvent.NewFolderNameChanged -> _uiState.update { it.copy(newFolderName = event.name) }
             FolderDetailEvent.DismissRenameFolderDialog -> _uiState.update { it.copy(isRenameFolderDialogVisible = false) }
@@ -494,6 +489,29 @@ class FolderDetailViewModel(application: Application) : AndroidViewModel(applica
                         } finally {
                             _uiState.update { it.copy(isLoading = false, selectedFile = null) }
                         }
+                    }
+                }
+            }
+            is FolderDetailEvent.DownloadFileClicked -> {
+                viewModelScope.launch {
+                    _uiState.update { it.copy(isLoading = true) }
+                    try {
+                        val response = apiService.downloadMaterial(event.file.id)
+                        if (response.isSuccessful) {
+                            val downloadUrl = response.body()?.url
+                            if (downloadUrl != null) {
+                                onDownloadFile?.invoke(downloadUrl, event.file.name)
+                                _uiState.update { it.copy(successMessage = "Memulai download...") }
+                            } else {
+                                _uiState.update { it.copy(errorMessage = "Link download tidak valid") }
+                            }
+                        } else {
+                            _uiState.update { it.copy(errorMessage = "Gagal mendapatkan link download") }
+                        }
+                    } catch (e: Exception) {
+                        _uiState.update { it.copy(errorMessage = "Terjadi kesalahan: ${e.message}") }
+                    } finally {
+                        _uiState.update { it.copy(isLoading = false) }
                     }
                 }
             }

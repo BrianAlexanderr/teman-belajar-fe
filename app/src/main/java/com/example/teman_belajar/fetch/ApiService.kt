@@ -129,6 +129,9 @@ interface ApiService {
     @PUT("/api/materials/rename")
     suspend fun renameMaterial(@Body request: RenameMaterialRequest) : Response<Unit>
 
+    @GET("/api/materials/download")
+    suspend fun downloadMaterial(@Query("materialId") materialId: String) : Response<MaterialResponse>
+
     companion object {
         val BASE_URL: String
             get() {
