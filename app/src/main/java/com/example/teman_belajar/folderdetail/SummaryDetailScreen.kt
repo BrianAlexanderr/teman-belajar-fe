@@ -18,31 +18,16 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.teman_belajar.theme.AppColors
 
-data class SummaryItem(
-    val keyPoint: String,
-    val description: String
-)
-data class SummaryDetailUiState(
-    val title: String = "Judul Rangkuman",
-    val items: List<SummaryItem> = listOf(
-        SummaryItem("Difusi Gas", "Proses pertukaran oksigen dan karbon dioksida terjadi di alveolus melalui membran respirasi yang sangat tipis."),
-        SummaryItem("Hemoglobin", "Protein dalam sel darah merah yang bertugas mengikat O2 dari paru-paru untuk diedarkan ke seluruh jaringan tubuh."),
-        SummaryItem("Faktor Respirasi", "Kecepatan pernapasan dipengaruhi oleh aktivitas fisik, umur, jenis kelamin, dan suhu tubuh."),
-        SummaryItem("Volume Residu", "Udara yang tetap berada di dalam paru-paru meskipun telah melakukan ekspirasi maksimal (sekitar 1000 mL).")
-    ),
-    val quizQuestionCount: Int = 5
-)
-
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun SummaryDetailScreen(
-    uiState: SummaryDetailUiState = SummaryDetailUiState(),
-    onBackClick: () -> Unit = {},
-    onStartQuizClick: () -> Unit = {}
+    uiState: SummaryDetailUiState,
+    onEvent: (SummaryDetailEvent) -> Unit
 ) {
     Scaffold(
         topBar = {
@@ -55,7 +40,7 @@ fun SummaryDetailScreen(
                     )
                 },
                 navigationIcon = {
-                    IconButton(onClick = onBackClick) {
+                    IconButton(onClick = { onEvent(SummaryDetailEvent.NavigateBack) }) {
                         Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
                     }
                 },
@@ -64,6 +49,36 @@ fun SummaryDetailScreen(
         },
         containerColor = Color.White
     ) { paddingValues ->
+
+        if (uiState.isLoading) {
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(paddingValues),
+                contentAlignment = Alignment.Center
+            ) {
+                CircularProgressIndicator(color = AppColors.Purple)
+            }
+            return@Scaffold
+        }
+
+        if (uiState.errorMessage != null) {
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(paddingValues),
+                contentAlignment = Alignment.Center
+            ) {
+                Text(
+                    text = uiState.errorMessage,
+                    color = Color.Red,
+                    textAlign = TextAlign.Center,
+                    modifier = Modifier.padding(24.dp)
+                )
+            }
+            return@Scaffold
+        }
+
         Column(
             modifier = Modifier
                 .fillMaxSize()
@@ -121,10 +136,21 @@ fun SummaryDetailScreen(
 
                     Spacer(modifier = Modifier.height(20.dp))
 
-                    uiState.items.forEach { item ->
-                        SummaryBulletItem(item)
-                        Spacer(modifier = Modifier.height(16.dp))
+                    uiState.keyPoints.forEach { point ->
+                        SummaryBulletItem(point)
+                        Spacer(modifier = Modifier.height(12.dp))
                     }
+
+                    Spacer(modifier = Modifier.height(8.dp))
+                    HorizontalDivider(color = Color(0xFFE5E7EB), thickness = 1.dp)
+                    Spacer(modifier = Modifier.height(16.dp))
+
+                    Text(
+                        text = uiState.content,
+                        fontSize = 14.sp,
+                        lineHeight = 24.sp,
+                        color = Color(0xFF374151)
+                    )
                 }
             }
 
@@ -157,9 +183,9 @@ fun SummaryDetailScreen(
                             color = Color(0xFF6D28D9)
                         )
                     }
-                    
+
                     Button(
-                        onClick = onStartQuizClick,
+                        onClick = { onEvent(SummaryDetailEvent.StartQuizClicked) },
                         colors = ButtonDefaults.buttonColors(containerColor = AppColors.Purple),
                         shape = RoundedCornerShape(24.dp),
                         contentPadding = PaddingValues(horizontal = 20.dp, vertical = 12.dp)
@@ -168,14 +194,14 @@ fun SummaryDetailScreen(
                     }
                 }
             }
-            
+
             Spacer(modifier = Modifier.height(40.dp))
         }
     }
 }
 
 @Composable
-fun SummaryBulletItem(item: SummaryItem) {
+fun SummaryBulletItem(text: String) {
     Row(modifier = Modifier.fillMaxWidth()) {
         Box(
             modifier = Modifier
@@ -185,13 +211,11 @@ fun SummaryBulletItem(item: SummaryItem) {
                 .background(AppColors.Purple)
         )
         Spacer(modifier = Modifier.width(12.dp))
-        Column {
-            Text(
-                text = "${item.keyPoint}: ${item.description}",
-                fontSize = 14.sp,
-                lineHeight = 20.sp,
-                color = Color(0xFF374151)
-            )
-        }
+        Text(
+            text = text,
+            fontSize = 14.sp,
+            lineHeight = 20.sp,
+            color = Color(0xFF374151)
+        )
     }
 }

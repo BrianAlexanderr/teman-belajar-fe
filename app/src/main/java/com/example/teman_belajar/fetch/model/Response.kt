@@ -37,3 +37,16 @@ data class FolderMaterialResponse(
     val fileName: String,
     val fileType: String
 )
+
+data class SummaryListItemResponse(
+    val id: String,
+    val title: String,
+    val preview: String
+)
+
+data class SummaryDetailResponse(
+    val id: String,
+    val title: String,
+    val keyPoint: List<String>,
+    val content: String
+)

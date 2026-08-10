@@ -15,6 +15,7 @@ import retrofit2.Retrofit
 import retrofit2.converter.gson.GsonConverterFactory
 import retrofit2.http.*
 import java.util.UUID
+import java.util.concurrent.TimeUnit
 
 
 fun isEmulator(): Boolean {
@@ -108,8 +109,8 @@ interface ApiService {
     @POST("/api/ai/generate-quiz/{folderId}")
     suspend fun generateQuiz(@Path("folderId") folderId: String) : Response<GeneralResponse>
 
-    @POST("/api/ai/smart-summary/{folderId}")
-    suspend fun smartSummary(@Path("folderId") folderId: String) : Response<GeneralResponse>
+    @POST("/api/summary/summarize")
+    suspend fun smartSummary(@Body request: SmartSummaryRequest) : Response<SummaryDetailResponse>
 
     @GET("/api/folders/{id}/materials")
     suspend fun getFolderMaterials(@Path("id") id: String) : Response<List<FolderMaterialResponse>>
@@ -132,6 +133,15 @@ interface ApiService {
     @GET("/api/materials/download")
     suspend fun downloadMaterial(@Query("materialId") materialId: String) : Response<MaterialResponse>
 
+    @GET("/api/summary/list")
+    suspend fun getSummaryList(@Query("folderId") folderId: String) : retrofit2.Response<List<SummaryListItemResponse>>
+
+    @GET("/api/summary/detail")
+    suspend fun getSummaryDetail(@Query("summaryId") summaryId: String) : retrofit2.Response<SummaryDetailResponse>
+
+    @DELETE("/api/summary/{id}")
+    suspend fun deleteSummary(@Path("id") id: String) : retrofit2.Response<Unit>
+
     companion object {
         val BASE_URL: String
             get() {
@@ -151,6 +161,9 @@ interface ApiService {
             val client = OkHttpClient.Builder()
                 .addInterceptor(authInterceptor)
                 .authenticator(tokenAuthenticator)
+                .connectTimeout(60, TimeUnit.SECONDS)
+                .readTimeout(60, TimeUnit.SECONDS)
+                .writeTimeout(60, TimeUnit.SECONDS)
                 .build()
 
             return Retrofit.Builder()

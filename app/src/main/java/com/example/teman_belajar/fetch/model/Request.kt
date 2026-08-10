@@ -58,3 +58,8 @@ data class RenameMaterialRequest(
     val id: String,
     val newName: String
 )
+
+data class SmartSummaryRequest(
+    val folderId: String,
+    val materialIds: List<String>
+)

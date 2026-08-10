@@ -39,8 +39,9 @@ class MainActivity : ComponentActivity() {
     private val registrationViewModel: RegistrationViewModel by viewModels()
     private val homeViewModel: HomeViewModel by viewModels()
     private val forgotPasswordViewModel: com.example.teman_belajar.forgotpassword.ForgotPasswordViewModel by viewModels()
-
     private val folderDetailViewModel: com.example.teman_belajar.folderdetail.FolderDetailViewModel by viewModels()
+
+    private val smartSummaryDetailViewModel: com.example.teman_belajar.folderdetail.SmartSummaryDetailViewModel by viewModels()
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -122,9 +123,11 @@ class MainActivity : ComponentActivity() {
                             folderDetailViewModel.onNavigateBack = {
                                 navController.popBackStack()
                             }
-                            
-                            folderDetailViewModel.onNavigateToSummaryDetail = {
-                                navController.navigate("summary_detail")
+
+                            folderDetailViewModel.onNavigateToSummaryDetail = { summaryId ->
+                                if (summaryId != null) {
+                                    navController.navigate("summary_detail/$summaryId")
+                                }
                             }
 
                             com.example.teman_belajar.folderdetail.FolderDetailScreen(
@@ -134,10 +137,29 @@ class MainActivity : ComponentActivity() {
                             )
                         }
 
-                        composable("summary_detail") {
+                        composable("summary_detail/{summaryId}") { backStackEntry ->
+
+                            val summaryId = backStackEntry.arguments?.getString("summaryId") ?: ""
+
+                            LaunchedEffect(summaryId) {
+                                if (summaryId != "new") {
+                                    smartSummaryDetailViewModel.fetchSummary(summaryId)
+                                }
+                            }
+
+                            val uiState by smartSummaryDetailViewModel.uiState.collectAsState()
+
+                            smartSummaryDetailViewModel.onNavigateBack = {
+                                navController.popBackStack()
+                            }
+
+                            smartSummaryDetailViewModel.onNavigateToQuiz = {
+                                println("Quiz")
+                            }
+
                             SummaryDetailScreen(
-                                onBackClick = { navController.popBackStack() },
-                                onStartQuizClick = { /* Handle start quiz */ }
+                                uiState = uiState,
+                                onEvent = smartSummaryDetailViewModel::onEvent
                             )
                         }
 
