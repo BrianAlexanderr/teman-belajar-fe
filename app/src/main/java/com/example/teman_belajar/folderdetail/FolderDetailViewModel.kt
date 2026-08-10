@@ -67,6 +67,7 @@ data class FolderDetailUiState(
     val folderName: String = "",
     val searchQuery: String = "",
     val isLoading: Boolean = false,
+    val isGeneratingSummary: Boolean = false,
     val errorMessage: String? = null,
     val successMessage: String? = null,
 
@@ -146,7 +147,7 @@ class FolderDetailViewModel(application: Application) : AndroidViewModel(applica
     var onNavigateBack: (() -> Unit)? = null
     var onOpenFile: ((String, String) -> Unit)? = null
     var onDownloadFile: ((String, String) -> Unit)? = null
-    var onNavigateToSummaryDetail: (() -> Unit)? = null
+    var onNavigateToSummaryDetail: ((String?) -> Unit)? = null
 
     fun setFolderData(id: String, name: String) {
         if (id.isEmpty()) return
@@ -196,6 +197,28 @@ class FolderDetailViewModel(application: Application) : AndroidViewModel(applica
         }
     }
 
+    private suspend fun fetchSummariesInternal(folderId: String): List<DummyFile> {
+        return try {
+            val response = apiService.getSummaryList(folderId)
+            if (response.isSuccessful) {
+                response.body()?.map { summary ->
+                    DummyFile(
+                        id = summary.id,
+                        name = summary.title,
+                        mimeType = "SUMMARY",
+                        isSmartSummary = true,
+                        description = summary.preview,
+                        size = "0 MB"
+                    )
+                } ?: emptyList()
+            } else {
+                emptyList()
+            }
+        } catch (e: Exception) {
+            emptyList()
+        }
+    }
+
     private fun loadMaterials(folderId: String) {
         if (folderId.isEmpty()) return
 
@@ -207,11 +230,18 @@ class FolderDetailViewModel(application: Application) : AndroidViewModel(applica
 
         loadingJob = viewModelScope.launch {
             try {
-                val files = fetchMaterialsInternal(folderId)
+                val (files, summaries) = coroutineScope {
+                    val deferredFiles = async { fetchMaterialsInternal(folderId) }
+                    val deferredSummaries = async { fetchSummariesInternal(folderId) }
+                    Pair(deferredFiles.await(), deferredSummaries.await())
+                }
+
+                val allCombinedFiles = files + summaries
+
                 _uiState.update { state ->
-                    val filtered = files.filter { it.name.contains(state.searchQuery, ignoreCase = true) }
+                    val filtered = allCombinedFiles.filter { it.name.contains(state.searchQuery, ignoreCase = true) }
                     state.copy(
-                        allFiles = files,
+                        allFiles = allCombinedFiles,
                         materials = filtered.filter { !it.isSmartSummary },
                         smartSummaries = filtered.filter { it.isSmartSummary },
                         isLoading = false
@@ -295,7 +325,13 @@ class FolderDetailViewModel(application: Application) : AndroidViewModel(applica
 
         viewModelScope.launch {
             try {
-                if (apiService.deleteMaterial(file.id).isSuccessful) {
+                val responseIsSuccessful = if (file.isSmartSummary) {
+                    apiService.deleteSummary(file.id).isSuccessful
+                } else {
+                    apiService.deleteMaterial(file.id).isSuccessful
+                }
+
+                if (responseIsSuccessful) {
                     _uiState.update { it.copy(successMessage = "Terhapus!") }
                 } else {
                     _uiState.update { it.copy(allFiles = oldState.allFiles, materials = oldState.materials, smartSummaries = oldState.smartSummaries) }
@@ -443,25 +479,55 @@ class FolderDetailViewModel(application: Application) : AndroidViewModel(applica
             FolderDetailEvent.CancelSummarySelection -> {
                 _uiState.update { it.copy(isSummarySelectionMode = false, selectedMaterialIds = emptySet()) }
             }
+
             FolderDetailEvent.ConfirmSmartSummary -> {
                 val selectedIds = _uiState.value.selectedMaterialIds
+                val currentFolderId = _uiState.value.folderId
+
                 if (selectedIds.isEmpty()) {
                     _uiState.update { it.copy(errorMessage = "Pilih minimal satu materi") }
                     return
                 }
-                
-                onNavigateToSummaryDetail?.invoke()
 
                 _uiState.update { it.copy(
-                    isSummarySelectionMode = false,
-                    selectedMaterialIds = emptySet(),
-                    isLoading = false
+                    isGeneratingSummary = true,
+                    isSummarySelectionMode = false
                 ) }
 
                 viewModelScope.launch {
                     try {
-                        apiService.smartSummary(_uiState.value.folderId)
+                        val request = com.example.teman_belajar.fetch.model.SmartSummaryRequest(
+                            folderId = currentFolderId,
+                            materialIds = selectedIds.toList()
+                        )
+
+                        val response = apiService.smartSummary(request)
+
+                        if (response.isSuccessful && response.body() != null) {
+                            val generatedSummary = response.body()!!
+
+                            val files = fetchMaterialsInternal(currentFolderId)
+                            val summaries = fetchSummariesInternal(currentFolderId)
+                            val allCombinedFiles = files + summaries
+
+                            _uiState.update { state ->
+                                state.copy(
+                                    allFiles = allCombinedFiles,
+                                    materials = files,
+                                    smartSummaries = summaries,
+                                    selectedMaterialIds = emptySet(),
+                                    isGeneratingSummary = false,
+                                    successMessage = "Ringkasan berhasil dibuat!"
+                                )
+                            }
+
+                            onNavigateToSummaryDetail?.invoke(generatedSummary.id)
+
+                        } else {
+                            _uiState.update { it.copy(isGeneratingSummary = false, errorMessage = "Gagal membuat summary") }
+                        }
                     } catch (e: Exception) {
+                        _uiState.update { it.copy(isGeneratingSummary = false, errorMessage = "Jaringan bermasalah") }
                     }
                 }
             }
@@ -476,7 +542,7 @@ class FolderDetailViewModel(application: Application) : AndroidViewModel(applica
                     return
                 }
                 if (file.isSmartSummary) {
-                    onNavigateToSummaryDetail?.invoke()
+                    onNavigateToSummaryDetail?.invoke(file.id)
                     return
                 }
                 if (file.uri != null) onOpenFile?.invoke(file.uri, file.mimeType)

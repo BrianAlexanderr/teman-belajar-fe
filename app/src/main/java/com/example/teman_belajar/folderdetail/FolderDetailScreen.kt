@@ -52,6 +52,8 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.ui.window.Dialog
+import androidx.compose.ui.window.DialogProperties
 import androidx.core.content.ContextCompat
 import androidx.core.content.FileProvider
 import androidx.core.net.toUri
@@ -62,6 +64,7 @@ import java.io.File
 import java.io.FileOutputStream
 import java.io.IOException
 import java.net.URLEncoder
+import kotlin.math.min
 
 private fun saveBitmapToInternalStorage(context: Context, bitmap: Bitmap): Uri? {
     val file = File(context.cacheDir, "camera_capture_${System.currentTimeMillis()}.jpg")
@@ -114,9 +117,9 @@ fun openFile(context: Context, uriString: String?, mimeType: String) {
                 context.startActivity(intent)
             }
             mimeType == "application/msword" ||
-            mimeType == "application/vnd.openxmlformats-officedocument.wordprocessingml.document" ||
-            mimeType == "application/vnd.ms-powerpoint" ||
-            mimeType == "application/vnd.openxmlformats-officedocument.presentationml.presentation" -> {
+                    mimeType == "application/vnd.openxmlformats-officedocument.wordprocessingml.document" ||
+                    mimeType == "application/vnd.ms-powerpoint" ||
+                    mimeType == "application/vnd.openxmlformats-officedocument.presentationml.presentation" -> {
                 val viewerUrl = "https://docs.google.com/gview?embedded=true&url=" + URLEncoder.encode(uriString, "UTF-8")
                 val intent = Intent(context, WebViewActivity::class.java)
                 intent.putExtra("url", viewerUrl)
@@ -213,13 +216,13 @@ fun FolderDetailScreen(
                 modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 16.dp),
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                IconButton(onClick = { 
+                IconButton(onClick = {
                     if (uiState.isSummarySelectionMode) onEvent(FolderDetailEvent.CancelSummarySelection)
-                    else onEvent(FolderDetailEvent.NavigateBack) 
+                    else onEvent(FolderDetailEvent.NavigateBack)
                 }) {
                     Icon(
-                        imageVector = if (uiState.isSummarySelectionMode) Icons.Default.Close else Icons.AutoMirrored.Filled.ArrowBack, 
-                        contentDescription = "Back", 
+                        imageVector = if (uiState.isSummarySelectionMode) Icons.Default.Close else Icons.AutoMirrored.Filled.ArrowBack,
+                        contentDescription = "Back",
                         tint = AppColors.TextPrimary
                     )
                 }
@@ -270,9 +273,9 @@ fun FolderDetailScreen(
                             } else {
                                 Brush.horizontalGradient(listOf(AppColors.PurpleLight, AppColors.DecorationBot))
                             }
-                            
+
                             Card(
-                                onClick = { 
+                                onClick = {
                                     if (uiState.isSummarySelectionMode) {
                                         onEvent(FolderDetailEvent.CancelSummarySelection)
                                     } else {
@@ -306,14 +309,14 @@ fun FolderDetailScreen(
                                         Column(modifier = Modifier.weight(1f)) {
                                             Text(
                                                 text = if (uiState.isSummarySelectionMode) "Batalkan Pilihan" else "Ringkasan AI",
-                                                fontWeight = FontWeight.Bold, 
-                                                fontSize = 16.sp, 
+                                                fontWeight = FontWeight.Bold,
+                                                fontSize = 16.sp,
                                                 color = if (uiState.isSummarySelectionMode) AppColors.White else AppColors.TextPrimary
                                             )
                                             Text(
-                                                text = if (uiState.isSummarySelectionMode) "Klik kembali untuk membatalkan pemilihan materi." else "Dapatkan ringkasan materi belajar secara instan.", 
-                                                fontSize = 12.sp, 
-                                                color = if (uiState.isSummarySelectionMode) AppColors.White.copy(alpha = 0.9f) else AppColors.TextSecondary, 
+                                                text = if (uiState.isSummarySelectionMode) "Klik kembali untuk membatalkan pemilihan materi." else "Dapatkan ringkasan materi belajar secara instan.",
+                                                fontSize = 12.sp,
+                                                color = if (uiState.isSummarySelectionMode) AppColors.White.copy(alpha = 0.9f) else AppColors.TextSecondary,
                                                 lineHeight = 16.sp
                                             )
                                         }
@@ -356,7 +359,7 @@ fun FolderDetailScreen(
                                     DummyFile(id = "d2", name = "Genetika Dasar", isSmartSummary = true, description = "Konsep dasar genetika dan pewarisan sifat.")
                                 )
                                 val displayList = uiState.smartSummaries.ifEmpty { dummySummaries }
-                                
+
                                 LazyRow(
                                     horizontalArrangement = Arrangement.spacedBy(16.dp),
                                     modifier = Modifier.fillMaxWidth()
@@ -444,20 +447,60 @@ fun FolderDetailScreen(
                     containerColor = AppColors.Purple,
                     disabledContainerColor = AppColors.InputBorder
                 ),
-                enabled = uiState.selectedMaterialIds.isNotEmpty() && !uiState.isLoading
+                enabled = uiState.selectedMaterialIds.isNotEmpty() && !uiState.isGeneratingSummary
             ) {
-                if (uiState.isLoading) {
-                    CircularProgressIndicator(modifier = Modifier.size(24.dp), color = AppColors.White, strokeWidth = 2.dp)
-                } else {
-                    Row(verticalAlignment = Alignment.CenterVertically) {
-                        Icon(Icons.Outlined.AutoAwesome, contentDescription = null)
-                        Spacer(modifier = Modifier.width(8.dp))
-                        Text("Buat Smart Summary (${uiState.selectedMaterialIds.size})", fontWeight = FontWeight.Bold, fontSize = 16.sp)
-                    }
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Icon(Icons.Outlined.AutoAwesome, contentDescription = null)
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Text("Buat Smart Summary (${uiState.selectedMaterialIds.size})", fontWeight = FontWeight.Bold, fontSize = 16.sp)
                 }
             }
         }
     }
+
+    if (uiState.isGeneratingSummary) {
+        Dialog(
+            onDismissRequest = {},
+            properties = DialogProperties(
+                dismissOnBackPress = false,
+                dismissOnClickOutside = false
+            )
+        ) {
+            Card(
+                shape = RoundedCornerShape(16.dp),
+                colors = CardDefaults.cardColors(containerColor = AppColors.White),
+                elevation = CardDefaults.cardElevation(defaultElevation = 8.dp)
+            ) {
+                Column(
+                    modifier = Modifier.padding(32.dp),
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                    verticalArrangement = Arrangement.Center
+                ) {
+                    CircularProgressIndicator(
+                        color = AppColors.Purple,
+                        strokeWidth = 4.dp,
+                        modifier = Modifier.size(48.dp)
+                    )
+                    Spacer(modifier = Modifier.height(24.dp))
+                    Text(
+                        text = "Sedang membuat ringkasan...",
+                        fontSize = 16.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = AppColors.TextPrimary,
+                        textAlign = TextAlign.Center
+                    )
+                    Spacer(modifier = Modifier.height(8.dp))
+                    Text(
+                        text = "Harap tunggu sebentar. AI sedang memproses materi.",
+                        fontSize = 12.sp,
+                        color = AppColors.TextSecondary,
+                        textAlign = TextAlign.Center
+                    )
+                }
+            }
+        }
+    }
+
     if (uiState.isAddFileMenuVisible) {
         ActionSelectionDialog(
             onDismiss = { onEvent(FolderDetailEvent.DismissAddFileMenu) },
@@ -562,7 +605,7 @@ private fun SmartSummaryCard(
                     overflow = TextOverflow.Ellipsis,
                     modifier = Modifier.padding(end = 24.dp)
                 )
-                
+
                 Spacer(modifier = Modifier.height(4.dp))
 
                 Text(
@@ -574,7 +617,7 @@ private fun SmartSummaryCard(
                     overflow = TextOverflow.Ellipsis
                 )
             }
-            
+
             IconButton(
                 onClick = onOptions,
                 modifier = Modifier
@@ -604,10 +647,10 @@ private fun CourseMaterialCard(
     onDownload: () -> Unit
 ) {
     val nameLower = file.name.lowercase()
-    val isImage = file.mimeType.startsWith("image", ignoreCase = true) || 
-                  nameLower.endsWith(".jpg") || nameLower.endsWith(".jpeg") || 
-                  nameLower.endsWith(".png") || nameLower.endsWith(".webp") ||
-                  FileType.fromMimeType(file.mimeType) == FileType.IMAGE
+    val isImage = file.mimeType.startsWith("image", ignoreCase = true) ||
+            nameLower.endsWith(".jpg") || nameLower.endsWith(".jpeg") ||
+            nameLower.endsWith(".png") || nameLower.endsWith(".webp") ||
+            FileType.fromMimeType(file.mimeType) == FileType.IMAGE
 
     Card(
         modifier = modifier
@@ -671,7 +714,7 @@ private fun CourseMaterialCard(
                     Text(text = typeStr, fontSize = 10.sp, color = AppColors.TextSecondary)
                 }
             }
-            
+
             if (isSelectionMode) {
                 Box(
                     modifier = Modifier
@@ -709,7 +752,7 @@ private fun <T> List<T>.chunkedList(size: Int): List<List<T>> {
     val result = mutableListOf<List<T>>()
     var i = 0
     while (i < this.size) {
-        result.add(subList(i, Math.min(i + size, this.size)))
+        result.add(subList(i, min(i + size, this.size)))
         i += size
     }
     return result
