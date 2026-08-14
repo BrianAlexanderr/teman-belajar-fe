@@ -37,7 +37,6 @@ import androidx.compose.material3.pulltorefresh.PullToRefreshBox
 import androidx.compose.material3.pulltorefresh.PullToRefreshDefaults
 import androidx.compose.material3.pulltorefresh.rememberPullToRefreshState
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -343,7 +342,7 @@ fun FolderDetailScreen(
                             )
                             Spacer(modifier = Modifier.height(24.dp))
                         }
-                        if (!uiState.isSummarySelectionMode) {
+                        if (!uiState.isSummarySelectionMode && uiState.smartSummaries.isNotEmpty()) {
                             item {
                                 Row(verticalAlignment = Alignment.CenterVertically) {
                                     Text(text = "Ringkasan", fontSize = 18.sp, fontWeight = FontWeight.Bold, color = AppColors.TextPrimary)
@@ -354,17 +353,11 @@ fun FolderDetailScreen(
                             }
 
                             item {
-                                val dummySummaries = listOf(
-                                    DummyFile(id = "d1", name = "Sel dan Fungsinya", isSmartSummary = true, description = "Ringkasan poin-poin utama tentang struktur sel dan fungsinya."),
-                                    DummyFile(id = "d2", name = "Genetika Dasar", isSmartSummary = true, description = "Konsep dasar genetika dan pewarisan sifat.")
-                                )
-                                val displayList = uiState.smartSummaries.ifEmpty { dummySummaries }
-
                                 LazyRow(
                                     horizontalArrangement = Arrangement.spacedBy(16.dp),
                                     modifier = Modifier.fillMaxWidth()
                                 ) {
-                                    items(displayList) { file ->
+                                    items(uiState.smartSummaries) { file ->
                                         SmartSummaryCard(
                                             file = file,
                                             modifier = Modifier.width(220.dp).height(100.dp),
