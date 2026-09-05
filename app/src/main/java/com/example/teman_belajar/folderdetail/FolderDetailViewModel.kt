@@ -1,7 +1,9 @@
 package com.example.teman_belajar.folderdetail
 
 import android.app.Application
+import android.net.Uri
 import android.webkit.MimeTypeMap
+import android.widget.Toast
 import androidx.core.net.toUri
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
@@ -10,6 +12,10 @@ import com.example.teman_belajar.fetch.model.MaterialUploadRequest
 import com.example.teman_belajar.fetch.model.MaterialUploadSuccessRequest
 import com.example.teman_belajar.fetch.model.RenameFolderRequest
 import com.example.teman_belajar.fetch.model.RenameMaterialRequest
+import com.example.teman_belajar.fetch.model.UploadImageRequest
+import com.google.mlkit.vision.common.InputImage
+import com.google.mlkit.vision.text.TextRecognition
+import com.google.mlkit.vision.text.latin.TextRecognizerOptions
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.async
@@ -20,6 +26,7 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.suspendCancellableCoroutine
 import kotlinx.coroutines.withContext
 import okhttp3.MediaType.Companion.toMediaTypeOrNull
 import okhttp3.OkHttpClient
@@ -28,6 +35,8 @@ import okhttp3.RequestBody
 import okio.BufferedSink
 import org.json.JSONObject
 import java.util.UUID
+import kotlin.coroutines.resume
+import kotlin.coroutines.resumeWithException
 
 enum class FileType(val mimeTypes: List<String>) {
     IMAGE(listOf("image/jpeg", "image/jpg", "image/png", "image/webp", "image/heic", "image/heif")),
@@ -224,9 +233,7 @@ class FolderDetailViewModel(application: Application) : AndroidViewModel(applica
 
         loadingJob?.cancel()
 
-        if (!_uiState.value.isLoading && _uiState.value.allFiles.isEmpty()) {
-            _uiState.update { it.copy(isLoading = true, errorMessage = null) }
-        }
+        _uiState.update { it.copy(isLoading = true, errorMessage = null) }
 
         loadingJob = viewModelScope.launch {
             try {
@@ -261,48 +268,111 @@ class FolderDetailViewModel(application: Application) : AndroidViewModel(applica
 
         viewModelScope.launch {
             try {
-                val request = MaterialUploadRequest(folderId, name, mimeType)
-                val response = apiService.uploadMaterial(request)
+                val contentUri = uriString.toUri()
 
-                if (response.isSuccessful) {
-                    val body = response.body()
-                    val signedUrl = body?.url ?: ""
-                    val materialId = body?.fileName ?: ""
+                if (mimeType.startsWith("image/")) {
 
-                    if (signedUrl.isNotEmpty()) {
-                        val contentUri = uriString.toUri()
-                        val inputStream = getApplication<Application>().contentResolver.openInputStream(contentUri)
-                        val fileBytes = inputStream?.use { it.readBytes() }
+                    val extractedText = performLocalOcr(contentUri)
 
-                        if (fileBytes != null) {
-                            val putCode = withContext(Dispatchers.IO) {
-                                val uploadRequest = Request.Builder()
-                                    .url(signedUrl).put(object : RequestBody() {
-                                        override fun contentType() = mimeType.toMediaTypeOrNull()
-                                        override fun contentLength() = fileBytes.size.toLong()
-                                        override fun writeTo(sink: BufferedSink) { sink.write(fileBytes) }
-                                    }).build()
-                                OkHttpClient().newCall(uploadRequest).execute().use { it.code }
-                            }
+                    if (extractedText.isBlank()) {
+                        Toast.makeText(
+                            getApplication<Application>().applicationContext,
+                            "No text is extracted",
+                            Toast.LENGTH_SHORT
+                        ).show()
 
-                            if (putCode in 200..299) {
-                                if (apiService.notifyUploadSuccess(MaterialUploadSuccessRequest(materialId, signedUrl.substringBefore("?"))).isSuccessful) {
-                                    loadMaterials(folderId)
-                                    _uiState.update { it.copy(
-                                        searchQuery = "",
-                                        successMessage = "Berhasil diunggah!",
-                                        isLoading = false
-                                    ) }
-                                    return@launch
+                        _uiState.update { it.copy(isLoading = false, errorMessage = "Tidak ada teks yang dapat dibaca dari gambar ini") }
+                        return@launch
+                    }
+
+                    val request = UploadImageRequest(
+                        folderId = folderId,
+                        fileName = name,
+                        fileType = mimeType,
+                        extractedText = extractedText
+                    )
+
+                    val response = apiService.processTextAndUploadImage(request)
+
+                    if (response.isSuccessful) {
+                        loadMaterials(folderId)
+                        _uiState.update { it.copy(
+                            searchQuery = "",
+                            successMessage = "Teks dari gambar berhasil diproses!",
+                            isLoading = false
+                        ) }
+                    } else {
+                        _uiState.update { it.copy(isLoading = false, errorMessage = "Gagal memproses teks gambar ke server") }
+                    }
+
+                }
+
+                else {
+                    val request = MaterialUploadRequest(folderId, name, mimeType)
+                    val response = apiService.uploadMaterial(request)
+
+                    if (response.isSuccessful) {
+                        val body = response.body()
+                        val signedUrl = body?.url ?: ""
+                        val materialId = body?.fileName ?: ""
+
+                        if (signedUrl.isNotEmpty()) {
+                            val inputStream = getApplication<Application>().contentResolver.openInputStream(contentUri)
+                            val fileBytes = inputStream?.use { it.readBytes() }
+
+                            if (fileBytes != null) {
+                                val putCode = withContext(Dispatchers.IO) {
+                                    val uploadRequest = Request.Builder()
+                                        .url(signedUrl).put(object : RequestBody() {
+                                            override fun contentType() = mimeType.toMediaTypeOrNull()
+                                            override fun contentLength() = fileBytes.size.toLong()
+                                            override fun writeTo(sink: BufferedSink) { sink.write(fileBytes) }
+                                        }).build()
+                                    OkHttpClient().newCall(uploadRequest).execute().use { it.code }
+                                }
+
+                                if (putCode in 200..299) {
+                                    if (apiService.notifyUploadSuccess(MaterialUploadSuccessRequest(materialId, signedUrl.substringBefore("?"))).isSuccessful) {
+                                        loadMaterials(folderId)
+                                        _uiState.update { it.copy(
+                                            searchQuery = "",
+                                            successMessage = "Dokumen berhasil diunggah!",
+                                            isLoading = false
+                                        ) }
+                                        return@launch
+                                    }
                                 }
                             }
                         }
                     }
+                    _uiState.update { it.copy(isLoading = false, errorMessage = "Gagal upload dokumen") }
                 }
-                _uiState.update { it.copy(isLoading = false, errorMessage = "Gagal upload") }
             } catch (e: Exception) {
                 _uiState.update { it.copy(isLoading = false, errorMessage = e.message) }
             }
+        }
+    }
+
+    private suspend fun performLocalOcr(uri: Uri): String {
+        return try {
+            val context = getApplication<Application>().applicationContext
+            val image = InputImage.fromFilePath(context, uri)
+            val recognizer = TextRecognition.getClient(TextRecognizerOptions.DEFAULT_OPTIONS)
+
+            val visionText = suspendCancellableCoroutine { continuation ->
+                recognizer.process(image)
+                    .addOnSuccessListener { text ->
+                        continuation.resume(text)
+                    }
+                    .addOnFailureListener { e ->
+                        continuation.resumeWithException(e)
+                    }
+            }
+
+            visionText.text
+        } catch (e: Exception) {
+            e.printStackTrace()
+            ""
         }
     }
 

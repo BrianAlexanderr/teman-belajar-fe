@@ -121,6 +121,9 @@ interface ApiService {
     @POST("/api/materials/upload")
     suspend fun uploadMaterial(@Body request: MaterialUploadRequest) : Response<MaterialResponse>
 
+    @POST("/api/materials/upload/image")
+    suspend fun processTextAndUploadImage(@Body request: UploadImageRequest) : Response<GeneralResponse>
+
     @POST("/api/materials/upload/success")
     suspend fun notifyUploadSuccess(@Body request: MaterialUploadSuccessRequest) : Response<Unit>
 
