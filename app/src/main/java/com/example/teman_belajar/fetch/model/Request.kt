@@ -63,3 +63,10 @@ data class SmartSummaryRequest(
     val folderId: String,
     val materialIds: List<String>
 )
+
+data class UploadImageRequest(
+    val extractedText: String,
+    val fileName: String,
+    val fileType: String,
+    val folderId: String
+)

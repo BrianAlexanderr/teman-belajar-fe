@@ -59,6 +59,9 @@
     }
 
     dependencies {
+        implementation(libs.vision.common)
+        implementation(libs.play.services.mlkit.text.recognition.common)
+        implementation(libs.play.services.mlkit.text.recognition)
         val composeBom = platform("androidx.compose:compose-bom:2026.03.00")
         implementation(composeBom)
         androidTestImplementation(composeBom)
@@ -109,4 +112,5 @@
         testImplementation(libs.junit)
         androidTestImplementation(libs.androidx.junit)
         androidTestImplementation(libs.androidx.espresso.core)
+        implementation("org.jetbrains.kotlinx:kotlinx-coroutines-play-services:1.7.3")
     }
