@@ -70,6 +70,7 @@ class HomeViewModel(application: Application) : AndroidViewModel(application) {
 
     var onNavigateToLogin: (() -> Unit)? = null
     var onNavigateToFolderDetail: ((String, String) -> Unit)? = null
+    var onNavigateToQuizHistory: (() -> Unit)? = null
 
     init {
         fetchUserName()
@@ -230,7 +231,7 @@ class HomeViewModel(application: Application) : AndroidViewModel(application) {
                     deleteFolder(folderToDelete.id)
                 }
             }
-            HomeEvent.QuizAiClicked -> {}
+            HomeEvent.QuizAiClicked -> onNavigateToQuizHistory?.invoke()
             HomeEvent.RingkasanClicked -> {}
             HomeEvent.ShowPopup -> {
                 _uiState.update { it.copy(isPopupVisible = true) }

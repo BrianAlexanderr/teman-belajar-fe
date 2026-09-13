@@ -40,8 +40,9 @@ class MainActivity : ComponentActivity() {
     private val homeViewModel: HomeViewModel by viewModels()
     private val forgotPasswordViewModel: com.example.teman_belajar.forgotpassword.ForgotPasswordViewModel by viewModels()
     private val folderDetailViewModel: com.example.teman_belajar.folderdetail.FolderDetailViewModel by viewModels()
-
     private val smartSummaryDetailViewModel: com.example.teman_belajar.folderdetail.SmartSummaryDetailViewModel by viewModels()
+    private val quizHistoryViewModel: com.example.teman_belajar.quizhistory.QuizHistoryViewModel by viewModels()
+    private val quizViewModel: com.example.teman_belajar.quiz.QuizViewModel by viewModels()
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -104,9 +105,45 @@ class MainActivity : ComponentActivity() {
                                 navController.navigate("folder_detail/$id/$name")
                             }
 
+                            homeViewModel.onNavigateToQuizHistory = {
+                                navController.navigate("quiz_history")
+                            }
+
                             HomeScreen(
                                 uiState = uiState,
                                 onEvent = homeViewModel::onEvent
+                            )
+                        }
+
+                        composable("quiz_history") {
+                            val uiState by quizHistoryViewModel.uiState.collectAsState()
+
+                            quizHistoryViewModel.onNavigateBack = {
+                                navController.popBackStack()
+                            }
+
+                            quizHistoryViewModel.onNavigateToResult = {
+                                navController.navigate("quiz_history_result")
+                            }
+
+                            com.example.teman_belajar.quizhistory.QuizHistoryScreen(
+                                uiState = uiState,
+                                onEvent = quizHistoryViewModel::onEvent,
+                                onNavigateToHome = {
+                                    navController.navigate("home") {
+                                        popUpTo("home") { inclusive = true }
+                                        launchSingleTop = true
+                                    }
+                                }
+                            )
+                        }
+
+                        composable("quiz_history_result") {
+                            val uiState by quizHistoryViewModel.uiState.collectAsState()
+
+                            com.example.teman_belajar.quizhistory.QuizHistoryResultScreen(
+                                uiState = uiState,
+                                onEvent = quizHistoryViewModel::onEvent
                             )
                         }
 
@@ -154,12 +191,64 @@ class MainActivity : ComponentActivity() {
                             }
 
                             smartSummaryDetailViewModel.onNavigateToQuiz = {
-                                println("Quiz")
+                                quizViewModel.resetQuiz()
+                                navController.navigate("quiz_session")
                             }
 
                             SummaryDetailScreen(
                                 uiState = uiState,
                                 onEvent = smartSummaryDetailViewModel::onEvent
+                            )
+                        }
+
+                        composable("quiz_session") {
+                            val uiState by quizViewModel.uiState.collectAsState()
+
+                            quizViewModel.onNavigateBack = {
+                                navController.popBackStack()
+                            }
+
+                            quizViewModel.onNavigateToResult = {
+                                navController.navigate("quiz_result") {
+                                    popUpTo("quiz_session") { inclusive = true }
+                                }
+                            }
+
+                            com.example.teman_belajar.quiz.QuizScreen(
+                                uiState = uiState,
+                                onEvent = quizViewModel::onEvent
+                            )
+                        }
+
+                        composable("quiz_result") {
+                            val uiState by quizViewModel.uiState.collectAsState()
+
+                            quizViewModel.onNavigateToHome = {
+                                navController.navigate("home") {
+                                    popUpTo("home") { inclusive = true }
+                                }
+                            }
+
+                            quizViewModel.onNavigateToExplanation = {
+                                navController.navigate("quiz_explanation")
+                            }
+
+                            com.example.teman_belajar.quiz.QuizResultScreen(
+                                uiState = uiState,
+                                onEvent = quizViewModel::onEvent
+                            )
+                        }
+
+                        composable("quiz_explanation") {
+                            val uiState by quizViewModel.uiState.collectAsState()
+
+                            quizViewModel.onNavigateBack = {
+                                navController.popBackStack()
+                            }
+
+                            com.example.teman_belajar.quiz.QuizExplanationScreen(
+                                uiState = uiState,
+                                onEvent = quizViewModel::onEvent
                             )
                         }
 
