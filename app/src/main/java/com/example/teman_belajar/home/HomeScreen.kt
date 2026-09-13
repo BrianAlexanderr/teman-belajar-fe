@@ -88,6 +88,9 @@ fun HomeScreen(
             Navbar(
                 currentRoute = "home",
                 onItemClick = {
+                    if (it == "quiz") {
+                        onEvent(HomeEvent.QuizAiClicked)
+                    }
                 }
             )
         },
