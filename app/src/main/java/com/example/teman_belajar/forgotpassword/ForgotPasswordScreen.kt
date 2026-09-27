@@ -45,7 +45,7 @@ fun ForgotPasswordScreen(
 
     Surface(
         modifier = Modifier.fillMaxSize(),
-        color = Color.White
+        color = MaterialTheme.colorScheme.background
     ) {
         Column(
             modifier = Modifier
@@ -59,7 +59,7 @@ fun ForgotPasswordScreen(
                 Icon(
                     imageVector = Icons.Default.ArrowBack,
                     contentDescription = "Back",
-                    tint = Color.Black
+                    tint = MaterialTheme.colorScheme.onSurface
                 )
             }
 
@@ -69,7 +69,7 @@ fun ForgotPasswordScreen(
                 text = screenTitle,
                 style = MaterialTheme.typography.headlineMedium.copy(
                     fontWeight = FontWeight.ExtraBold,
-                    color = Color.Black
+                    color = MaterialTheme.colorScheme.onSurface
                 ),
                 modifier = Modifier
                     .fillMaxWidth()

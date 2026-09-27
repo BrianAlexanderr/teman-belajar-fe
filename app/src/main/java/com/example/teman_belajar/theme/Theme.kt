@@ -33,6 +33,12 @@ object AppColors {
     val DecorationBot = Color(0xFFF3E8FF)
     
     val White         = Color.White
+
+    // Dark Mode Colors
+    val DarkBackground = Color(0xFF121212)
+    val DarkSurface    = Color(0xFF1E1E1E)
+    val DarkTextPrimary = Color(0xFFE2E8F0)
+    val DarkTextSecondary = Color(0xFF94A3B8)
 }
 
 object RegistrationColors {
@@ -86,12 +92,24 @@ private val LightColorScheme = lightColorScheme(
     onSurfaceVariant = AppColors.TextSecondary
 )
 
+private val DarkColorScheme = darkColorScheme(
+    primary = AppColors.Purple,
+    onPrimary = Color.White,
+    secondary = AppColors.PurpleDark,
+    onSecondary = AppColors.PurpleLight,
+    background = AppColors.DarkBackground,
+    surface = AppColors.DarkSurface,
+    error = AppColors.Error,
+    onSurface = AppColors.DarkTextPrimary,
+    onSurfaceVariant = AppColors.DarkTextSecondary
+)
+
 @Composable
 fun TemanBelajarTheme(
     darkTheme: Boolean = isSystemInDarkTheme(),
     content: @Composable () -> Unit
 ) {
-    val colorScheme = LightColorScheme
+    val colorScheme = if (darkTheme) DarkColorScheme else LightColorScheme
 
     MaterialTheme(
         colorScheme = colorScheme,

@@ -178,21 +178,26 @@ class FolderDetailViewModel(application: Application) : AndroidViewModel(applica
 
             materials.map { material ->
                 async {
-                    val existing = currentFilesMap[material.fileId]
-                    if (existing?.uri != null && existing.name == material.fileName) {
+                    val mId = material.fileId ?: ""
+                    val mName = material.fileName ?: ""
+                    val existing = currentFilesMap[mId]
+                    if (existing?.uri != null && existing.name == mName) {
                         existing
                     } else {
                         val infoResponse = try {
-                            apiService.getMaterialInfo(material.fileId, material.fileName)
+                            if (mId.isNotEmpty()) {
+                                apiService.getMaterialInfo(mId, mName)
+                            } else null
                         } catch (e: Exception) { null }
                         val url = if (infoResponse?.isSuccessful == true) infoResponse.body()?.url else null
                         
-                        val isAI = material.fileType == "SUMMARY" || material.fileName.contains("(AI)", ignoreCase = true)
+                        val fileTypeStr = material.fileType ?: ""
+                        val isAI = fileTypeStr == "SUMMARY" || mName.contains("(AI)", ignoreCase = true)
                         
                         DummyFile(
-                            id = material.fileId,
-                            name = material.fileName,
-                            mimeType = material.fileType,
+                            id = mId,
+                            name = mName,
+                            mimeType = fileTypeStr,
                             uri = url,
                             isSmartSummary = isAI,
                             description = if (isAI) "Ringkasan poin-poin utama. (AI)" else "",
@@ -200,7 +205,7 @@ class FolderDetailViewModel(application: Application) : AndroidViewModel(applica
                         )
                     }
                 }
-            }.awaitAll().filter { it.id !in _uiState.value.pendingDeleteIds }
+            }.awaitAll().filter { it.id.isNotEmpty() && it.id !in _uiState.value.pendingDeleteIds }
         } else {
             emptyList()
         }
@@ -212,11 +217,11 @@ class FolderDetailViewModel(application: Application) : AndroidViewModel(applica
             if (response.isSuccessful) {
                 response.body()?.map { summary ->
                     DummyFile(
-                        id = summary.id,
-                        name = summary.title,
+                        id = summary.id ?: "",
+                        name = summary.title ?: "",
                         mimeType = "SUMMARY",
                         isSmartSummary = true,
-                        description = summary.preview,
+                        description = summary.preview ?: "",
                         size = "0 MB"
                     )
                 } ?: emptyList()
@@ -499,6 +504,30 @@ class FolderDetailViewModel(application: Application) : AndroidViewModel(applica
             FolderDetailEvent.AddMateriClicked -> _uiState.update { it.copy(isAddFileMenuVisible = true) }
             FolderDetailEvent.DismissAddFileMenu -> _uiState.update { it.copy(isAddFileMenuVisible = false) }
             is FolderDetailEvent.FileAdded -> uploadMaterial(event.name, event.mimeType, event.uri)
+            is FolderDetailEvent.FileClicked -> {
+                val file = event.file
+                if (_uiState.value.isSummarySelectionMode && !file.isSmartSummary) {
+                    onEvent(FolderDetailEvent.ToggleMaterialSelection(file.id))
+                    return
+                }
+                if (file.isSmartSummary) {
+                    onNavigateToSummaryDetail?.invoke(file.id)
+                    return
+                }
+                if (file.uri != null) onOpenFile?.invoke(file.uri, file.mimeType)
+                else {
+                    viewModelScope.launch {
+                        _uiState.update { it.copy(selectedFile = file, isLoading = true) }
+                        try {
+                            val res = apiService.getMaterialInfo(file.id, file.name)
+                            val downloadUrl = if (res.isSuccessful) res.body()?.url else null
+                            if (downloadUrl != null) onOpenFile?.invoke(downloadUrl, file.mimeType)
+                        } finally {
+                            _uiState.update { it.copy(isLoading = false, selectedFile = null) }
+                        }
+                    }
+                }
+            }
             is FolderDetailEvent.NewFileNameChanged -> _uiState.update { it.copy(newFileName = event.name) }
             is FolderDetailEvent.ShowFileOptions -> _uiState.update { it.copy(isFileOptionsVisible = true, selectedFile = event.file) }
             FolderDetailEvent.DismissFileOptions -> _uiState.update { it.copy(isFileOptionsVisible = false, selectedFile = null) }
@@ -591,7 +620,7 @@ class FolderDetailViewModel(application: Application) : AndroidViewModel(applica
                                 )
                             }
 
-                            onNavigateToSummaryDetail?.invoke(generatedSummary.id)
+                            onNavigateToSummaryDetail?.invoke(generatedSummary.id ?: "")
 
                         } else {
                             _uiState.update { it.copy(isGeneratingSummary = false, errorMessage = "Gagal membuat summary") }
@@ -605,29 +634,6 @@ class FolderDetailViewModel(application: Application) : AndroidViewModel(applica
             FolderDetailEvent.ClearError -> _uiState.update { it.copy(errorMessage = null) }
             FolderDetailEvent.ClearSuccessMessage -> _uiState.update { it.copy(successMessage = null) }
 
-            is FolderDetailEvent.FileClicked -> {
-                val file = event.file
-                if (_uiState.value.isSummarySelectionMode && !file.isSmartSummary) {
-                    onEvent(FolderDetailEvent.ToggleMaterialSelection(file.id))
-                    return
-                }
-                if (file.isSmartSummary) {
-                    onNavigateToSummaryDetail?.invoke(file.id)
-                    return
-                }
-                if (file.uri != null) onOpenFile?.invoke(file.uri, file.mimeType)
-                else {
-                    viewModelScope.launch {
-                        _uiState.update { it.copy(selectedFile = file, isLoading = true) }
-                        try {
-                            val res = apiService.getMaterialInfo(file.id, file.name)
-                            if (res.isSuccessful && res.body()?.url != null) onOpenFile?.invoke(res.body()!!.url, file.mimeType)
-                        } finally {
-                            _uiState.update { it.copy(isLoading = false, selectedFile = null) }
-                        }
-                    }
-                }
-            }
             is FolderDetailEvent.DownloadFileClicked -> {
                 viewModelScope.launch {
                     _uiState.update { it.copy(isLoading = true) }

@@ -30,7 +30,12 @@ import com.example.teman_belajar.splash.SplashScreen
 import com.example.teman_belajar.theme.TemanBelajarTheme
 import com.example.teman_belajar.utils.SessionManager
 import com.example.teman_belajar.folderdetail.SummaryDetailScreen
-import com.example.teman_belajar.folderdetail.SummaryDetailUiState
+import com.example.teman_belajar.summarylist.SummaryListScreen
+import com.example.teman_belajar.summarylist.SummaryListViewModel
+import com.example.teman_belajar.quiz.QuizListScreen
+import com.example.teman_belajar.quiz.QuizListViewModel
+import com.example.teman_belajar.profile.ProfileScreen
+import com.example.teman_belajar.profile.ProfileViewModel
 
 class MainActivity : ComponentActivity() {
 
@@ -43,13 +48,18 @@ class MainActivity : ComponentActivity() {
     private val smartSummaryDetailViewModel: com.example.teman_belajar.folderdetail.SmartSummaryDetailViewModel by viewModels()
     private val quizHistoryViewModel: com.example.teman_belajar.quizhistory.QuizHistoryViewModel by viewModels()
     private val quizViewModel: com.example.teman_belajar.quiz.QuizViewModel by viewModels()
+    private val summaryListViewModel: SummaryListViewModel by viewModels()
+    private val quizListViewModel: QuizListViewModel by viewModels()
+    private val profileViewModel: ProfileViewModel by viewModels()
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
 
         setContent {
-            TemanBelajarTheme {
+            val appDarkMode by mainViewModel.isDarkMode.collectAsState(initial = false)
+
+            TemanBelajarTheme(darkTheme = appDarkMode) {
                 val startDestination by mainViewModel.startDestination.collectAsState()
 
                 if (startDestination == "loading") {
@@ -109,9 +119,58 @@ class MainActivity : ComponentActivity() {
                                 navController.navigate("quiz_history")
                             }
 
+                            homeViewModel.onNavigateToProfile = {
+                                navController.navigate("profile") {
+                                    launchSingleTop = true
+                                }
+                            }
+
+                            homeViewModel.onNavigateToSummaryList = {
+                                navController.navigate("summary_list")
+                            }
+
+                            homeViewModel.onNavigateToQuizList = {
+                                navController.navigate("quiz_list")
+                            }
+
                             HomeScreen(
                                 uiState = uiState,
                                 onEvent = homeViewModel::onEvent
+                            )
+                        }
+
+                        composable("summary_list") {
+                            val uiState by summaryListViewModel.uiState.collectAsState()
+
+                            summaryListViewModel.onNavigateBack = {
+                                navController.popBackStack()
+                            }
+
+                            summaryListViewModel.onNavigateToSummaryDetail = { summaryId ->
+                                navController.navigate("summary_detail/$summaryId")
+                            }
+
+                            SummaryListScreen(
+                                uiState = uiState,
+                                onEvent = summaryListViewModel::onEvent
+                            )
+                        }
+
+                        composable("quiz_list") {
+                            val uiState by quizListViewModel.uiState.collectAsState()
+
+                            quizListViewModel.onNavigateBack = {
+                                navController.popBackStack()
+                            }
+
+                            quizListViewModel.onNavigateToQuizSession = { quizId ->
+                                quizViewModel.fetchQuiz(quizId)
+                                navController.navigate("quiz_session")
+                            }
+
+                            QuizListScreen(
+                                uiState = uiState,
+                                onEvent = quizListViewModel::onEvent
                             )
                         }
 
@@ -126,12 +185,22 @@ class MainActivity : ComponentActivity() {
                                 navController.navigate("quiz_history_result")
                             }
 
+                            quizHistoryViewModel.onNavigateToQuizSession = { quizId, attemptedQuizId ->
+                                quizViewModel.resumeQuiz(quizId, attemptedQuizId)
+                                navController.navigate("quiz_session")
+                            }
+
                             com.example.teman_belajar.quizhistory.QuizHistoryScreen(
                                 uiState = uiState,
                                 onEvent = quizHistoryViewModel::onEvent,
                                 onNavigateToHome = {
                                     navController.navigate("home") {
                                         popUpTo("home") { inclusive = true }
+                                        launchSingleTop = true
+                                    }
+                                },
+                                onNavigateToProfile = {
+                                    navController.navigate("profile") {
                                         launchSingleTop = true
                                     }
                                 }
@@ -141,9 +210,44 @@ class MainActivity : ComponentActivity() {
                         composable("quiz_history_result") {
                             val uiState by quizHistoryViewModel.uiState.collectAsState()
 
+                            quizHistoryViewModel.onNavigateToExplanation = { quizId, attemptedQuizId ->
+                                quizViewModel.fetchAttemptDetail(quizId, attemptedQuizId)
+                                navController.navigate("quiz_explanation")
+                            }
+
                             com.example.teman_belajar.quizhistory.QuizHistoryResultScreen(
                                 uiState = uiState,
                                 onEvent = quizHistoryViewModel::onEvent
+                            )
+                        }
+
+                        composable("profile") {
+                            val uiState by profileViewModel.uiState.collectAsState()
+
+                            profileViewModel.onNavigateBack = {
+                                navController.popBackStack()
+                            }
+
+                            profileViewModel.onLogout = {
+                                navController.navigate("login") {
+                                    popUpTo(0) { inclusive = true }
+                                }
+                            }
+
+                            ProfileScreen(
+                                uiState = uiState,
+                                onEvent = profileViewModel::onEvent,
+                                onNavigateToHome = {
+                                    navController.navigate("home") {
+                                        popUpTo("home") { inclusive = true }
+                                        launchSingleTop = true
+                                    }
+                                },
+                                onNavigateToQuizHistory = {
+                                    navController.navigate("quiz_history") {
+                                        launchSingleTop = true
+                                    }
+                                }
                             )
                         }
 
@@ -191,8 +295,7 @@ class MainActivity : ComponentActivity() {
                             }
 
                             smartSummaryDetailViewModel.onNavigateToQuiz = {
-                                quizViewModel.resetQuiz()
-                                navController.navigate("quiz_session")
+                                navController.navigate("quiz_list")
                             }
 
                             SummaryDetailScreen(

@@ -109,6 +109,36 @@ interface ApiService {
     @POST("/api/ai/generate-quiz/{folderId}")
     suspend fun generateQuiz(@Path("folderId") folderId: String) : Response<GeneralResponse>
 
+    @POST("/api/quiz/generate")
+    suspend fun generateQuizFromSummary(@Body request: GenerateQuizRequest) : Response<GeneralResponse>
+
+    @GET("/api/quiz/{id}")
+    suspend fun getQuizById(@Path("id") id: String) : Response<List<QuizItemResponse>>
+
+    @GET("/api/quiz/list")
+    suspend fun getQuizList() : Response<List<QuizListItemResponse>>
+
+    @POST("/api/quiz/check")
+    suspend fun checkQuiz(@Body request: CheckQuizRequest) : Response<CheckQuizResponse>
+
+    @POST("/api/quiz/submit")
+    suspend fun submitQuiz(@Body request: SubmitQuizRequest) : Response<SaveAndSubmitQuizResponse>
+
+    @POST("/api/quiz/save")
+    suspend fun saveQuiz(@Body request: SubmitQuizRequest) : Response<SaveAndSubmitQuizResponse>
+
+    @GET("/api/quiz/attempted")
+    suspend fun getQuizAttempted() : Response<List<QuizAttemptedResponse>>
+
+    @GET("/api/quiz/attempted/detail/{quizId}/{attemptedQuizId}")
+    suspend fun getQuizAttemptedDetail(
+        @Path("quizId") quizId: String,
+        @Path("attemptedQuizId") attemptedQuizId: String
+    ) : Response<QuizAttemptedDetailResponse>
+
+    @DELETE("/api/quiz/{id}")
+    suspend fun deleteQuiz(@Path("id") id: String) : Response<GeneralResponse>
+
     @POST("/api/summary/summarize")
     suspend fun smartSummary(@Body request: SmartSummaryRequest) : Response<SummaryDetailResponse>
 
@@ -139,6 +169,9 @@ interface ApiService {
     @GET("/api/summary/list")
     suspend fun getSummaryList(@Query("folderId") folderId: String) : retrofit2.Response<List<SummaryListItemResponse>>
 
+    @GET("/api/summary/list-all")
+    suspend fun getSummaryListAll() : retrofit2.Response<List<SummaryListItemResponse>>
+
     @GET("/api/summary/detail")
     suspend fun getSummaryDetail(@Query("summaryId") summaryId: String) : retrofit2.Response<SummaryDetailResponse>
 
@@ -161,8 +194,16 @@ interface ApiService {
             val authInterceptor = AuthInterceptor()
             val tokenAuthenticator = TokenAuthenticator(userPreferences)
 
+            // Menambahkan Logging Interceptor agar semua data request dan response API muncul di Logcat
+            val loggingInterceptor = HttpLoggingInterceptor { message ->
+                Log.d("OkHttp", message)
+            }.apply {
+                level = HttpLoggingInterceptor.Level.BODY
+            }
+
             val client = OkHttpClient.Builder()
                 .addInterceptor(authInterceptor)
+                .addInterceptor(loggingInterceptor)
                 .authenticator(tokenAuthenticator)
                 .connectTimeout(60, TimeUnit.SECONDS)
                 .readTimeout(60, TimeUnit.SECONDS)
