@@ -56,7 +56,6 @@ fun HomeScreen(
     val context = LocalContext.current
     val lifecycleOwner = LocalLifecycleOwner.current
 
-    // Fetch folders every time the screen comes to foreground (Resume)
     DisposableEffect(lifecycleOwner) {
         val observer = LifecycleEventObserver { _, event ->
             if (event == Lifecycle.Event.ON_RESUME) {
@@ -87,9 +86,10 @@ fun HomeScreen(
         bottomBar = {
             Navbar(
                 currentRoute = "home",
-                onItemClick = {
-                    if (it == "quiz") {
-                        onEvent(HomeEvent.QuizAiClicked)
+                onItemClick = { route ->
+                    when (route) {
+                        "quiz_history" -> onEvent(HomeEvent.QuizHistoryClicked)
+                        "profile" -> onEvent(HomeEvent.ProfileClicked)
                     }
                 }
             )
@@ -104,12 +104,12 @@ fun HomeScreen(
             ) {
                 Icon(Icons.Default.Add, contentDescription = "Add Folder")
             }
-        }
+        },
+        containerColor = MaterialTheme.colorScheme.background // Gunakan background tema
     ) { paddingValues ->
         Box(
             modifier = Modifier
                 .fillMaxSize()
-                .background(AppColors.Background)
                 .padding(paddingValues)
         ) {
             BackgroundDecoration(
@@ -133,12 +133,12 @@ fun HomeScreen(
                             text = "Halo, ${uiState.userName}!!",
                             fontSize = 28.sp,
                             fontWeight = FontWeight.Bold,
-                            color = AppColors.TextPrimary
+                            color = MaterialTheme.colorScheme.onSurface // Gunakan onSurface tema
                         )
                         Text(
                             text = "Siap untuk meraih target\nbelajarmu hari ini?",
                             fontSize = 16.sp,
-                            color = AppColors.TextSecondary,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant, // Gunakan variant tema
                             lineHeight = 22.sp,
                             modifier = Modifier.padding(top = 4.dp)
                         )
@@ -168,15 +168,17 @@ fun HomeScreen(
                         OutlinedTextField(
                             value = uiState.searchQuery,
                             onValueChange = { onEvent(HomeEvent.SearchQueryChanged(it)) },
-                            placeholder = { Text("Cari materi atau topik...", color = AppColors.TextSecondary) },
-                            leadingIcon = { Icon(Icons.Default.Search, contentDescription = null, tint = AppColors.TextSecondary) },
+                            placeholder = { Text("Cari materi atau topik...", color = MaterialTheme.colorScheme.onSurfaceVariant) },
+                            leadingIcon = { Icon(Icons.Default.Search, contentDescription = null, tint = MaterialTheme.colorScheme.onSurfaceVariant) },
                             modifier = Modifier.fillMaxWidth(),
                             shape = RoundedCornerShape(32.dp),
                             colors = OutlinedTextFieldDefaults.colors(
                                 focusedBorderColor = AppColors.Purple.copy(alpha = 0.5f),
                                 unfocusedBorderColor = AppColors.InputBorder,
-                                focusedContainerColor = Color.White,
-                                unfocusedContainerColor = Color.White
+                                focusedContainerColor = MaterialTheme.colorScheme.surface,
+                                unfocusedContainerColor = MaterialTheme.colorScheme.surface,
+                                focusedTextColor = MaterialTheme.colorScheme.onSurface,
+                                unfocusedTextColor = MaterialTheme.colorScheme.onSurface
                             ),
                             singleLine = true
                         )
@@ -187,7 +189,7 @@ fun HomeScreen(
                             text = "Folder Materi Saya",
                             fontSize = 20.sp,
                             fontWeight = FontWeight.Bold,
-                            color = AppColors.TextPrimary
+                            color = MaterialTheme.colorScheme.onSurface
                         )
                     }
                 }
@@ -201,15 +203,11 @@ fun HomeScreen(
                             CircularProgressIndicator(color = AppColors.Purple)
                         }
                     }
-                }
-
-                else if (uiState.folders.isEmpty()) {
+                } else if (uiState.folders.isEmpty()) {
                     item(span = { GridItemSpan(3) }) {
                         EmptyFolderState()
                     }
-                }
-
-                else {
+                } else {
                     items(uiState.folders) { folder ->
                         FolderCard(
                             folder = folder,
@@ -309,7 +307,7 @@ fun EmptyFolderState(modifier: Modifier = Modifier) {
         Icon(
             imageVector = Icons.Outlined.CreateNewFolder,
             contentDescription = "Folder Kosong",
-            tint = AppColors.TextSecondary.copy(alpha = 0.5f),
+            tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f),
             modifier = Modifier.size(80.dp)
         )
         Spacer(modifier = Modifier.height(16.dp))
@@ -317,12 +315,12 @@ fun EmptyFolderState(modifier: Modifier = Modifier) {
             text = "Belum ada folder materi",
             fontSize = 18.sp,
             fontWeight = FontWeight.SemiBold,
-            color = AppColors.TextPrimary.copy(alpha = 0.7f)
+            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f)
         )
         Text(
             text = "Klik tombol + di bawah untuk membuat folder baru",
             fontSize = 14.sp,
-            color = AppColors.TextSecondary,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
             modifier = Modifier.padding(top = 4.dp),
             textAlign = androidx.compose.ui.text.style.TextAlign.Center
         )
@@ -341,8 +339,8 @@ fun ActionCard(
             .height(140.dp)
             .clickable(onClick = onClick),
         shape = RoundedCornerShape(16.dp),
-        colors = CardDefaults.cardColors(containerColor = Color.White),
-        border = BorderStroke(1.dp, Color(0xFFE5E7EB))
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant)
     ) {
         Column(
             modifier = Modifier.fillMaxSize(),
@@ -359,7 +357,7 @@ fun ActionCard(
             Text(
                 text = title,
                 fontWeight = FontWeight.Bold,
-                color = Color.Black,
+                color = MaterialTheme.colorScheme.onSurface,
                 fontSize = 14.sp
             )
         }
@@ -435,7 +433,7 @@ fun FolderCard(
                 text = folder.name,
                 fontSize = 12.sp,
                 fontWeight = FontWeight.SemiBold,
-                color = AppColors.TextPrimary,
+                color = MaterialTheme.colorScheme.onSurface,
                 maxLines = 2,
                 overflow = TextOverflow.Ellipsis,
                 modifier = Modifier.weight(1f)
@@ -447,7 +445,7 @@ fun FolderCard(
                 Icon(
                     Icons.Default.MoreVert,
                     contentDescription = "Options",
-                    tint = AppColors.TextSecondary
+                    tint = MaterialTheme.colorScheme.onSurfaceVariant
                 )
             }
         }

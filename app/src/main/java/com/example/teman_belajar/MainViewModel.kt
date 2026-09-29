@@ -19,6 +19,9 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
     private val _startDestination = MutableStateFlow("loading")
     val startDestination: StateFlow<String> = _startDestination.asStateFlow()
 
+    // Expose dark mode state to the UI
+    val isDarkMode = userPreferences.isDarkModeFlow
+
     init {
         determineStartDestination()
     }

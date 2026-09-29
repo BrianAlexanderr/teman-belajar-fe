@@ -44,6 +44,8 @@ sealed class HomeEvent {
     object ConfirmDeleteFolder : HomeEvent()
     data class NewFolderNameChanged(val name: String) : HomeEvent()
     object QuizAiClicked : HomeEvent()
+    object QuizHistoryClicked : HomeEvent()
+    object ProfileClicked : HomeEvent()
     object RingkasanClicked : HomeEvent()
     object ShowPopup : HomeEvent()
     object DismissPopup : HomeEvent()
@@ -62,7 +64,6 @@ sealed class HomeEvent {
 class HomeViewModel(application: Application) : AndroidViewModel(application) {
 
     private val userPreferences = UserPreferences(application)
-
     private val apiService = ApiService.create(application)
 
     private val _uiState = MutableStateFlow(HomeUiState())
@@ -71,6 +72,9 @@ class HomeViewModel(application: Application) : AndroidViewModel(application) {
     var onNavigateToLogin: (() -> Unit)? = null
     var onNavigateToFolderDetail: ((String, String) -> Unit)? = null
     var onNavigateToQuizHistory: (() -> Unit)? = null
+    var onNavigateToProfile: (() -> Unit)? = null
+    var onNavigateToSummaryList: (() -> Unit)? = null
+    var onNavigateToQuizList: (() -> Unit)? = null
 
     init {
         fetchUserName()
@@ -89,84 +93,30 @@ class HomeViewModel(application: Application) : AndroidViewModel(application) {
     }
 
     private fun fetchFolders(forceRefresh: Boolean = false) {
-        if (_uiState.value.allFolders.isNotEmpty() && !forceRefresh) {
-            return
-        }
+        if (_uiState.value.allFolders.isNotEmpty() && !forceRefresh) return
 
         viewModelScope.launch {
             _uiState.update { it.copy(isLoading = true, errorMessage = null) }
             try {
                 val response = apiService.getUserFolder()
-
                 if (response.isSuccessful) {
                     val folderResponses = response.body() ?: emptyList()
-                    val folderItems = folderResponses.map {
-                        FolderItem(id = it.id, name = it.name)
+                    val folderItems = folderResponses.mapNotNull { 
+                        val id = it.id
+                        val name = it.name
+                        if (id != null && name != null) {
+                            FolderItem(id = id, name = name)
+                        } else null
                     }
                     _uiState.update { state ->
                         state.copy(
                             allFolders = folderItems,
-                            folders = folderItems.filter {
-                                it.name.contains(state.searchQuery, ignoreCase = true)
-                            },
+                            folders = folderItems.filter { it.name.contains(state.searchQuery, ignoreCase = true) },
                             isLoading = false
                         )
                     }
                 } else {
                     handleApiError(response, "Gagal memuat folder")
-                }
-            } catch (_: Exception) {
-                _uiState.update {
-                    it.copy(isLoading = false, errorMessage = "Terjadi kesalahan jaringan")
-                }
-            }
-        }
-    }
-
-    private fun createFolder(folderName: String) {
-        _uiState.update { it.copy(isCreateFolderDialogVisible = false, isLoading = true, newFolderName = "") }
-        viewModelScope.launch {
-            try {
-                val response = apiService.createFolder(CreateFolderRequest(name = folderName))
-                if (response.isSuccessful) {
-                    fetchFolders(true)
-                    _uiState.update { it.copy(successMessage = "Folder berhasil dibuat!") }
-                } else {
-                    handleApiError(response, "Gagal membuat folder")
-                }
-            } catch (_: Exception) {
-                _uiState.update { it.copy(isLoading = false, errorMessage = "Terjadi kesalahan jaringan") }
-            }
-        }
-    }
-
-    private fun renameFolder(id: UUID, newName: String) {
-        _uiState.update { it.copy(isRenameFolderDialogVisible = false, isLoading = true, newFolderName = "", selectedFolder = null) }
-        viewModelScope.launch {
-            try {
-                val response = apiService.renameFolder(RenameFolderRequest(id, newName))
-                if (response.isSuccessful) {
-                    fetchFolders(true)
-                    _uiState.update { it.copy(successMessage = "Folder berhasil diubah!") }
-                } else {
-                    handleApiError(response, "Gagal mengubah nama folder")
-                }
-            } catch (_: Exception) {
-                _uiState.update { it.copy(isLoading = false, errorMessage = "Terjadi kesalahan jaringan") }
-            }
-        }
-    }
-
-    private fun deleteFolder(id: UUID) {
-        _uiState.update { it.copy(isDeleteFolderDialogVisible = false, isLoading = true, selectedFolder = null) }
-        viewModelScope.launch {
-            try {
-                val response = apiService.deleteFolder(id)
-                if (response.isSuccessful) {
-                    fetchFolders(true)
-                    _uiState.update { it.copy(successMessage = "Folder berhasil dihapus!") }
-                } else {
-                    handleApiError(response, "Gagal menghapus folder")
                 }
             } catch (_: Exception) {
                 _uiState.update { it.copy(isLoading = false, errorMessage = "Terjadi kesalahan jaringan") }
@@ -181,12 +131,8 @@ class HomeViewModel(application: Application) : AndroidViewModel(application) {
         }
         val errorString = response.errorBody()?.string()
         val backendErrorMessage = try {
-            if (!errorString.isNullOrEmpty()) {
-                JSONObject(errorString).getString("msg")
-            } else defaultError
-        } catch (_: Exception) {
-            defaultError
-        }
+            if (!errorString.isNullOrEmpty()) JSONObject(errorString).getString("msg") else defaultError
+        } catch (_: Exception) { defaultError }
         _uiState.update { it.copy(isLoading = false, errorMessage = backendErrorMessage) }
     }
 
@@ -198,84 +144,75 @@ class HomeViewModel(application: Application) : AndroidViewModel(application) {
                 _uiState.update { state ->
                     state.copy(
                         searchQuery = event.query,
-                        folders = state.allFolders.filter {
-                            it.name.contains(event.query, ignoreCase = true)
-                        }
+                        folders = state.allFolders.filter { it.name.contains(event.query, ignoreCase = true) }
                     )
                 }
             }
-
             is HomeEvent.FolderClicked -> {
                 onNavigateToFolderDetail?.invoke(event.folder.id.toString(), event.folder.name)
             }
-
-            is HomeEvent.NewFolderNameChanged -> {
-                _uiState.update { it.copy(newFolderName = event.name) }
-            }
+            HomeEvent.QuizAiClicked -> onNavigateToQuizList?.invoke()
+            HomeEvent.QuizHistoryClicked -> onNavigateToQuizHistory?.invoke()
+            HomeEvent.ProfileClicked -> onNavigateToProfile?.invoke()
+            HomeEvent.RingkasanClicked -> onNavigateToSummaryList?.invoke()
+            HomeEvent.ShowPopup -> _uiState.update { it.copy(isPopupVisible = true) }
+            HomeEvent.DismissPopup -> _uiState.update { it.copy(isPopupVisible = false) }
+            HomeEvent.ShowCreateFolderDialog -> _uiState.update { it.copy(isPopupVisible = false, isCreateFolderDialogVisible = true) }
+            HomeEvent.DismissCreateFolderDialog -> _uiState.update { it.copy(isCreateFolderDialogVisible = false, newFolderName = "") }
             HomeEvent.ConfirmCreateFolder -> {
                 val currentName = _uiState.value.newFolderName
                 if (currentName.isNotBlank()) {
-                    createFolder(currentName)
+                    _uiState.update { it.copy(isCreateFolderDialogVisible = false, isLoading = true, newFolderName = "") }
+                    viewModelScope.launch {
+                        try {
+                            val response = apiService.createFolder(CreateFolderRequest(name = currentName))
+                            if (response.isSuccessful) {
+                                fetchFolders(true)
+                                _uiState.update { it.copy(successMessage = "Folder berhasil dibuat!") }
+                            } else handleApiError(response, "Gagal membuat folder")
+                        } catch (_: Exception) {
+                            _uiState.update { it.copy(isLoading = false, errorMessage = "Terjadi kesalahan jaringan") }
+                        }
+                    }
                 }
             }
-            HomeEvent.ConfirmRenameFolder -> {
-                val folderToRename = _uiState.value.selectedFolder
-                val newName = _uiState.value.newFolderName
-                if (folderToRename != null && newName.isNotBlank()) {
-                    renameFolder(folderToRename.id, newName)
-                }
-            }
-            HomeEvent.ConfirmDeleteFolder -> {
-                val folderToDelete = _uiState.value.selectedFolder
-                if (folderToDelete != null) {
-                    deleteFolder(folderToDelete.id)
-                }
-            }
-            HomeEvent.QuizAiClicked -> onNavigateToQuizHistory?.invoke()
-            HomeEvent.RingkasanClicked -> {}
-            HomeEvent.ShowPopup -> {
-                _uiState.update { it.copy(isPopupVisible = true) }
-            }
-            HomeEvent.DismissPopup -> {
-                _uiState.update { it.copy(isPopupVisible = false) }
-            }
-            HomeEvent.ShowCreateFolderDialog -> {
-                _uiState.update { it.copy(isPopupVisible = false, isCreateFolderDialogVisible = true) }
-            }
-            HomeEvent.DismissCreateFolderDialog -> {
-                _uiState.update { it.copy(isCreateFolderDialogVisible = false, newFolderName = "") }
-            }
-            HomeEvent.DismissRenameFolderDialog -> {
-                _uiState.update { it.copy(isRenameFolderDialogVisible = false, newFolderName = "", selectedFolder = null) }
-            }
-            HomeEvent.DismissDeleteFolderDialog -> {
-                _uiState.update { it.copy(isDeleteFolderDialogVisible = false, selectedFolder = null) }
-            }
-            is HomeEvent.ShowFolderOptions -> {
-                _uiState.update { it.copy(isFolderOptionsVisible = true, selectedFolder = event.folder) }
-            }
-            HomeEvent.DismissFolderOptions -> {
-                _uiState.update { it.copy(isFolderOptionsVisible = false, selectedFolder = null) }
-            }
+            is HomeEvent.NewFolderNameChanged -> _uiState.update { it.copy(newFolderName = event.name) }
+            is HomeEvent.ShowFolderOptions -> _uiState.update { it.copy(isFolderOptionsVisible = true, selectedFolder = event.folder) }
+            HomeEvent.DismissFolderOptions -> _uiState.update { it.copy(isFolderOptionsVisible = false, selectedFolder = null) }
             HomeEvent.RenameFolderClicked -> {
                 val currentFolder = _uiState.value.selectedFolder
-                _uiState.update {
-                    it.copy(
-                        isFolderOptionsVisible = false,
-                        isRenameFolderDialogVisible = true,
-                        newFolderName = currentFolder?.name ?: ""
-                    )
+                _uiState.update { it.copy(isFolderOptionsVisible = false, isRenameFolderDialogVisible = true, newFolderName = currentFolder?.name ?: "") }
+            }
+            HomeEvent.DeleteFolderClicked -> _uiState.update { it.copy(isFolderOptionsVisible = false, isDeleteFolderDialogVisible = true) }
+            HomeEvent.DismissRenameFolderDialog -> _uiState.update { it.copy(isRenameFolderDialogVisible = false, newFolderName = "", selectedFolder = null) }
+            HomeEvent.ConfirmRenameFolder -> {
+                val folder = _uiState.value.selectedFolder
+                val newName = _uiState.value.newFolderName
+                if (folder != null && newName.isNotBlank()) {
+                    _uiState.update { it.copy(isRenameFolderDialogVisible = false, isLoading = true, selectedFolder = null) }
+                    viewModelScope.launch {
+                        try {
+                            val response = apiService.renameFolder(RenameFolderRequest(folder.id, newName))
+                            if (response.isSuccessful) fetchFolders(true) else handleApiError(response, "Gagal mengubah nama folder")
+                        } catch (_: Exception) { _uiState.update { it.copy(isLoading = false, errorMessage = "Terjadi kesalahan jaringan") } }
+                    }
                 }
             }
-            HomeEvent.DeleteFolderClicked -> {
-                _uiState.update { it.copy(isFolderOptionsVisible = false, isDeleteFolderDialogVisible = true) }
+            HomeEvent.DismissDeleteFolderDialog -> _uiState.update { it.copy(isDeleteFolderDialogVisible = false, selectedFolder = null) }
+            HomeEvent.ConfirmDeleteFolder -> {
+                val folder = _uiState.value.selectedFolder
+                if (folder != null) {
+                    _uiState.update { it.copy(isDeleteFolderDialogVisible = false, isLoading = true, selectedFolder = null) }
+                    viewModelScope.launch {
+                        try {
+                            val response = apiService.deleteFolder(folder.id)
+                            if (response.isSuccessful) fetchFolders(true) else handleApiError(response, "Gagal menghapus folder")
+                        } catch (_: Exception) { _uiState.update { it.copy(isLoading = false, errorMessage = "Terjadi kesalahan jaringan") } }
+                    }
+                }
             }
-            HomeEvent.ClearError -> {
-                _uiState.update { it.copy(errorMessage = null) }
-            }
-            HomeEvent.ClearSuccessMessage -> {
-                _uiState.update { it.copy(successMessage = null) }
-            }
+            HomeEvent.ClearError -> _uiState.update { it.copy(errorMessage = null) }
+            HomeEvent.ClearSuccessMessage -> _uiState.update { it.copy(successMessage = null) }
         }
     }
 

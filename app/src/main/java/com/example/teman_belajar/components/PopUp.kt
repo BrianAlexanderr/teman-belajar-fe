@@ -21,14 +21,6 @@ import com.example.teman_belajar.theme.AppColors
 
 /**
  * Model data untuk item menu di dalam [ActionSelectionDialog].
- *
- * @property title Judul utama item menu (misal: "Ganti Nama Folder").
- * @property subtitle Deskripsi singkat di bawah judul (misal: "Ubah nama folder ini").
- * @property icon Icon yang ditampilkan di sebelah kiri teks.
- * @property onClick Aksi yang dijalankan saat item ini diklik.
- * @property iconTint Warna icon, default menggunakan warna ungu aplikasi.
- * @property iconBgColor Warna latar belakang lingkaran icon.
- * @property titleColor Warna teks judul, default hitam.
  */
 data class ActionMenuItem(
     val title: String,
@@ -36,18 +28,12 @@ data class ActionMenuItem(
     val icon: ImageVector,
     val onClick: () -> Unit,
     val iconTint: Color = AppColors.Purple,
-    val iconBgColor: Color = Color(0xFFF3F0EF),
-    val titleColor: Color = Color.Black
+    val iconBgColor: Color? = null, // Will use theme if null
+    val titleColor: Color? = null // Will use theme if null
 )
 
 /**
  * Popup Menu untuk memilih berbagai tindakan (Selection List).
- * Biasanya muncul saat tombol opsi (titik tiga) atau tombol tambah (+) diklik.
- *
- * @param onDismiss Fungsi untuk menutup dialog.
- * @param title Judul kategori di bagian atas (opsional, misal: "TINDAKAN FOLDER").
- * @param items Daftar [ActionMenuItem] yang akan ditampilkan sebagai opsi.
- * @param closeButtonText Teks untuk tombol tutup di bagian paling bawah.
  */
 @Composable
 fun ActionSelectionDialog(
@@ -62,7 +48,7 @@ fun ActionSelectionDialog(
                 .fillMaxWidth()
                 .padding(horizontal = 4.dp),
             shape = RoundedCornerShape(24.dp),
-            colors = CardDefaults.cardColors(containerColor = Color.White),
+            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
             elevation = CardDefaults.cardElevation(defaultElevation = 8.dp)
         ) {
             Column(modifier = Modifier.fillMaxWidth()) {
@@ -71,7 +57,7 @@ fun ActionSelectionDialog(
                         text = title,
                         fontSize = 12.sp,
                         fontWeight = FontWeight.Bold,
-                        color = Color.Gray,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
                         modifier = Modifier.padding(start = 24.dp, top = 24.dp, bottom = 8.dp)
                     )
                 }
@@ -87,7 +73,7 @@ fun ActionSelectionDialog(
                         Box(
                             modifier = Modifier
                                 .size(56.dp)
-                                .background(item.iconBgColor, CircleShape),
+                                .background(item.iconBgColor ?: MaterialTheme.colorScheme.surfaceVariant, CircleShape),
                             contentAlignment = Alignment.Center
                         ) {
                             Icon(
@@ -105,12 +91,12 @@ fun ActionSelectionDialog(
                                 text = item.title,
                                 fontSize = 18.sp,
                                 fontWeight = FontWeight.Bold,
-                                color = item.titleColor
+                                color = item.titleColor ?: MaterialTheme.colorScheme.onSurface
                             )
                             Text(
                                 text = item.subtitle,
                                 fontSize = 14.sp,
-                                color = Color.Gray
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
                             )
                         }
                     }
@@ -119,7 +105,7 @@ fun ActionSelectionDialog(
                 HorizontalDivider(
                     modifier = Modifier.fillMaxWidth(),
                     thickness = 1.dp,
-                    color = Color(0xFFEEEEEE)
+                    color = MaterialTheme.colorScheme.outlineVariant
                 )
                 
                 Box(
@@ -143,17 +129,6 @@ fun ActionSelectionDialog(
 
 /**
  * Dialog standar untuk input teks (Input Field).
- * Digunakan untuk membuat folder baru atau mengganti nama folder.
- *
- * @param title Judul dialog (misal: "Buat Folder").
- * @param subtitle Instruksi atau keterangan tambahan di bawah judul.
- * @param value State teks yang sedang diketik.
- * @param onValueChange Callback saat teks berubah.
- * @param placeholder Teks petunjuk di dalam input field.
- * @param onDismiss Fungsi saat tombol batal/area luar diklik.
- * @param onConfirm Fungsi saat tombol konfirmasi diklik.
- * @param confirmButtonText Teks untuk tombol konfirmasi.
- * @param dismissButtonText Teks untuk tombol batal.
  */
 @Composable
 fun TextInputDialog(
@@ -170,26 +145,28 @@ fun TextInputDialog(
     AlertDialog(
         onDismissRequest = onDismiss,
         title = { 
-            Text(text = title, fontWeight = FontWeight.Bold, fontSize = 20.sp) 
+            Text(text = title, fontWeight = FontWeight.Bold, fontSize = 20.sp, color = MaterialTheme.colorScheme.onSurface) 
         },
         text = {
             Column {
                 Text(
                     text = subtitle,
                     fontSize = 14.sp,
-                    color = Color.Gray,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
                     modifier = Modifier.padding(bottom = 16.dp)
                 )
                 OutlinedTextField(
                     value = value,
                     onValueChange = onValueChange,
-                    placeholder = { Text(placeholder) },
+                    placeholder = { Text(placeholder, color = MaterialTheme.colorScheme.onSurfaceVariant) },
                     modifier = Modifier.fillMaxWidth(),
                     shape = RoundedCornerShape(12.dp),
                     singleLine = true,
                     colors = OutlinedTextFieldDefaults.colors(
                         focusedBorderColor = AppColors.Purple,
-                        unfocusedBorderColor = Color(0xFFE5E7EB)
+                        unfocusedBorderColor = MaterialTheme.colorScheme.outlineVariant,
+                        focusedTextColor = MaterialTheme.colorScheme.onSurface,
+                        unfocusedTextColor = MaterialTheme.colorScheme.onSurface
                     )
                 )
             }
@@ -206,28 +183,16 @@ fun TextInputDialog(
         },
         dismissButton = {
             TextButton(onClick = onDismiss) {
-                Text(dismissButtonText, color = Color.Gray)
+                Text(dismissButtonText, color = MaterialTheme.colorScheme.onSurfaceVariant)
             }
         },
         shape = RoundedCornerShape(28.dp),
-        containerColor = Color.White
+        containerColor = MaterialTheme.colorScheme.surface
     )
 }
 
 /**
  * Dialog Konfirmasi untuk tindakan kritis (misal: Hapus).
- * Menampilkan ikon peringatan besar dan pesan konfirmasi yang tegas.
- *
- * @param title Judul besar (misal: "Hapus Folder").
- * @param description Pesan peringatan detail.
- * @param icon Icon pusat (misal: Icons.Default.Delete).
- * @param iconTint Warna ikon peringatan (default Merah).
- * @param iconBgColor Warna latar belakang lingkaran icon.
- * @param confirmButtonText Teks tombol eksekusi (misal: "Iya, Hapus").
- * @param confirmButtonColor Warna tombol eksekusi (default Merah).
- * @param dismissButtonText Teks untuk tombol batal.
- * @param onDismiss Fungsi untuk membatalkan tindakan.
- * @param onConfirm Fungsi untuk mengonfirmasi tindakan.
  */
 @Composable
 fun ConfirmationDialog(
@@ -235,7 +200,7 @@ fun ConfirmationDialog(
     description: String,
     icon: ImageVector,
     iconTint: Color = Color(0xFFDC2626),
-    iconBgColor: Color = Color(0xFFFEF2F2),
+    iconBgColor: Color? = null,
     confirmButtonText: String,
     confirmButtonColor: Color = Color(0xFFB91C1C),
     dismissButtonText: String,
@@ -248,7 +213,7 @@ fun ConfirmationDialog(
                 .fillMaxWidth()
                 .padding(horizontal = 16.dp),
             shape = RoundedCornerShape(28.dp),
-            colors = CardDefaults.cardColors(containerColor = Color.White)
+            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
         ) {
             Column(
                 modifier = Modifier
@@ -259,7 +224,7 @@ fun ConfirmationDialog(
                 Box(
                     modifier = Modifier
                         .size(64.dp)
-                        .background(iconBgColor, CircleShape),
+                        .background(iconBgColor ?: Color(0xFFFEF2F2).copy(alpha = 0.2f), CircleShape),
                     contentAlignment = Alignment.Center
                 ) {
                     Icon(
@@ -276,7 +241,7 @@ fun ConfirmationDialog(
                     text = title,
                     fontSize = 22.sp,
                     fontWeight = FontWeight.Bold,
-                    color = Color.Black
+                    color = MaterialTheme.colorScheme.onSurface
                 )
 
                 Spacer(modifier = Modifier.height(12.dp))
@@ -284,14 +249,13 @@ fun ConfirmationDialog(
                 Text(
                     text = description,
                     fontSize = 14.sp,
-                    color = Color.Gray,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
                     textAlign = TextAlign.Center,
                     lineHeight = 20.sp
                 )
 
                 Spacer(modifier = Modifier.height(32.dp))
 
-                // Tombol Konfirmasi (Tindakan Utama)
                 Button(
                     onClick = onConfirm,
                     modifier = Modifier
@@ -305,16 +269,15 @@ fun ConfirmationDialog(
 
                 Spacer(modifier = Modifier.height(12.dp))
 
-                // Tombol Batalkan (Tindakan Sekunder)
                 OutlinedButton(
                     onClick = onDismiss,
                     modifier = Modifier
                         .fillMaxWidth()
                         .height(52.dp),
-                    border = BorderStroke(1.dp, Color(0xFFE5E7EB)),
+                    border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant),
                     shape = RoundedCornerShape(12.dp)
                 ) {
-                    Text(dismissButtonText, color = Color.Black, fontWeight = FontWeight.Bold, fontSize = 16.sp)
+                    Text(dismissButtonText, color = MaterialTheme.colorScheme.onSurface, fontWeight = FontWeight.Bold, fontSize = 16.sp)
                 }
             }
         }
@@ -326,21 +289,18 @@ fun SessionExpiredDialog(
     onConfirm: () -> Unit
 ) {
     AlertDialog(
-        onDismissRequest = {
-            // Dibiarkan kosong agar user tidak bisa menutup dialog dengan klik di luar area
-        },
+        onDismissRequest = {},
         title = {
-            Text(text = "Sesi Berakhir")
+            Text(text = "Sesi Berakhir", color = MaterialTheme.colorScheme.onSurface)
         },
         text = {
-            Text(text = "Sesi Anda telah habis karena alasan keamanan. Silakan login kembali untuk melanjutkan.")
+            Text(text = "Sesi Anda telah habis karena alasan keamanan. Silakan login kembali.", color = MaterialTheme.colorScheme.onSurfaceVariant)
         },
         confirmButton = {
-            TextButton(
-                onClick = onConfirm
-            ) {
-                Text("Login Kembali")
+            TextButton(onClick = onConfirm) {
+                Text("Login Kembali", color = AppColors.Purple)
             }
-        }
+        },
+        containerColor = MaterialTheme.colorScheme.surface
     )
 }

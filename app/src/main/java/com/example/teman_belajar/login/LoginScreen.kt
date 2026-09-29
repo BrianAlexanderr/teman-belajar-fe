@@ -23,7 +23,6 @@ import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardType
-import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.teman_belajar.R
@@ -56,7 +55,7 @@ fun LoginScreen(
 
     Surface(
         modifier = Modifier.fillMaxSize(),
-        color = Color.White
+        color = MaterialTheme.colorScheme.background
     ) {
         Column(
             modifier = Modifier
@@ -83,14 +82,14 @@ fun LoginScreen(
 
             Text(
                 text = "Sign in to your account to continue",
-                color = Color.Gray,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
                 fontSize = 14.sp,
                 modifier = Modifier.offset(y = (-50).dp)
             )
 
             if (uiState.errorMessage != null) {
                 Surface(
-                    color = Color(0xFFFFEBEE),
+                    color = MaterialTheme.colorScheme.errorContainer,
                     shape = RoundedCornerShape(8.dp),
                     modifier = Modifier
                         .fillMaxWidth()
@@ -98,7 +97,7 @@ fun LoginScreen(
                 ) {
                     Text(
                         text = uiState.errorMessage,
-                        color = Color(0xFFD32F2F), // Dark red text
+                        color = MaterialTheme.colorScheme.onErrorContainer,
                         modifier = Modifier.padding(12.dp),
                         fontSize = 14.sp,
                         fontWeight = FontWeight.Medium
@@ -113,6 +112,7 @@ fun LoginScreen(
                     text = "Email Address",
                     fontWeight = FontWeight.Bold,
                     fontSize = 14.sp,
+                    color = MaterialTheme.colorScheme.onSurface,
                     modifier = Modifier.padding(bottom = 8.dp)
                 )
                 AppTextField(
@@ -137,6 +137,7 @@ fun LoginScreen(
                     text = "Password",
                     fontWeight = FontWeight.Bold,
                     fontSize = 14.sp,
+                    color = MaterialTheme.colorScheme.onSurface,
                     modifier = Modifier.padding(bottom = 8.dp)
                 )
                 AppTextField(
@@ -201,13 +202,13 @@ fun LoginScreen(
                 verticalAlignment = Alignment.CenterVertically,
                 modifier = Modifier.fillMaxWidth()
             ) {
-                HorizontalDivider(modifier = Modifier.weight(1f), color = Color.LightGray)
+                HorizontalDivider(modifier = Modifier.weight(1f), color = MaterialTheme.colorScheme.outlineVariant)
                 Text(
                     text = "or",
                     modifier = Modifier.padding(horizontal = 16.dp),
-                    color = Color.Gray
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
-                HorizontalDivider(modifier = Modifier.weight(1f), color = Color.LightGray)
+                HorizontalDivider(modifier = Modifier.weight(1f), color = MaterialTheme.colorScheme.outlineVariant)
             }
 
             Spacer(modifier = Modifier.height(16.dp))
@@ -219,20 +220,12 @@ fun LoginScreen(
                     .fillMaxWidth()
                     .height(56.dp),
                 shape = RoundedCornerShape(12.dp),
-                border = BorderStroke(1.dp, Color.LightGray)
+                border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant)
             ) {
-                Text("Create New Account", color = Color.Black, fontWeight = FontWeight.Bold)
+                Text("Create New Account", color = MaterialTheme.colorScheme.onSurface, fontWeight = FontWeight.Bold)
             }
 
             Spacer(modifier = Modifier.height(32.dp))
         }
-    }
-}
-
-@Preview(showBackground = true, showSystemUi = true)
-@Composable
-private fun LoginPreview() {
-    MaterialTheme {
-        LoginScreen(uiState = LoginUiState(), onEvent = {})
     }
 }

@@ -70,3 +70,23 @@ data class UploadImageRequest(
     val fileType: String,
     val folderId: String
 )
+
+data class GenerateQuizRequest(
+    val summary: SummaryDetailResponse
+)
+
+data class CheckQuizRequest(
+    val answer: String,
+    val questionId: String
+)
+
+data class QuestionAttemptRequest(
+    val questionId: String,
+    val isCorrect: Boolean,
+    val selectedAnswer: String
+)
+
+data class SubmitQuizRequest(
+    val quizId: String,
+    val questionAttempts: List<QuestionAttemptRequest>
+)
