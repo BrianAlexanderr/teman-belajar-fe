@@ -28,12 +28,12 @@ fun Navbar(
     ) {
         val navItems = listOf(
             Triple("home", "Home", Icons.Default.Home),
-            Triple("quiz", "Quiz", Icons.Outlined.Quiz),
+            Triple("quiz_history", "Quiz History", Icons.Outlined.Quiz),
             Triple("profile", "Profile", Icons.Default.Person)
         )
 
         navItems.forEach { (route, label, icon) ->
-            val isSelected = currentRoute == route
+            val isSelected = currentRoute == route || (route == "quiz_history" && currentRoute == "quiz")
             
             NavigationBarItem(
                 selected = isSelected,
@@ -42,7 +42,6 @@ fun Navbar(
                     Icon(
                         imageVector = icon, 
                         contentDescription = label,
-                        // Menurunkan posisi ikon dengan padding top dan ukuran yang pas
                         modifier = Modifier
                             .padding(top = 4.dp) 
                             .size(22.dp)
@@ -53,7 +52,6 @@ fun Navbar(
                         text = label, 
                         fontSize = 10.sp,
                         fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal,
-                        // Memberikan sedikit jarak agar label tidak terlalu mepet bawah
                         modifier = Modifier.padding(bottom = 2.dp)
                     ) 
                 },

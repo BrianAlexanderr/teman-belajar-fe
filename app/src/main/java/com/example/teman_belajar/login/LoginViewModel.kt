@@ -24,7 +24,6 @@ class LoginViewModel(application: Application) : AndroidViewModel(application) {
 
     var onNavigateToRegister: (() -> Unit)? = null
     var onLoginSuccess: (() -> Unit)? = null
-
     var onNavigateToForgotPassword: (() -> Unit)? = null
 
     fun onEvent(event: LoginEvent) {
@@ -49,7 +48,6 @@ class LoginViewModel(application: Application) : AndroidViewModel(application) {
 
     private fun validateAndLogin() {
         val state = _uiState.value
-
         val emailError = if (state.email.isBlank()) "Email is required" else null
         val passwordError = if (state.password.isBlank()) "Password is required" else null
 
@@ -74,9 +72,11 @@ class LoginViewModel(application: Application) : AndroidViewModel(application) {
                 val response = apiService.login(request)
 
                 if (response.isSuccessful) {
-                    val token = response.body()?.token
-                    val refreshToken = response.body()?.refreshToken
-                    val userName = response.body()?.userName
+                    val body = response.body()
+                    val token = body?.token
+                    val refreshToken = body?.refreshToken
+                    val userName = body?.userName
+//                    val userId = body?.id
 
                     TokenManager.initializeTokens(token, refreshToken)
 
@@ -89,13 +89,19 @@ class LoginViewModel(application: Application) : AndroidViewModel(application) {
                     }
 
                     viewModelScope.launch {
-                        userPreferences.setLoggedIn(true, userName, token, refreshToken)
+                        // Memperbaiki urutan parameter menggunakan named arguments
+                        userPreferences.setLoggedIn(
+                            isLoggedIn = true,
+//                            userId = userId,
+                            userName = userName,
+                            token = token,
+                            refreshToken = refreshToken
+                        )
                     }
 
                     onLoginSuccess?.invoke()
                 } else {
                     val errorJson = response.errorBody()?.string()
-
                     Log.e("LoginError", "Isi errorJson: $errorJson")
                     val serverError = try {
                         JSONObject(errorJson ?: "{}").getString("msg")
@@ -104,7 +110,8 @@ class LoginViewModel(application: Application) : AndroidViewModel(application) {
                     }
                     _uiState.update { it.copy(isLoading = false, errorMessage = serverError) }
                 }
-            } catch (_: Exception) {
+            } catch (e: Exception) {
+                Log.e("LoginViewModel", "Login error", e)
                 _uiState.update { it.copy(isLoading = false, errorMessage = "Connection failed. Please check your internet.") }
             }
         }

@@ -25,11 +25,10 @@ fun QuizHistoryResultScreen(
 ) {
     val item = uiState.selectedItem
     val scorePercentage = item?.score ?: 0
-    val correctAnswers = item?.correctAnswers ?: 0
-    val totalQuestions = item?.totalQuestions ?: 10
-    val progress = correctAnswers.toFloat() / totalQuestions
+    val progress = scorePercentage.toFloat() / 100f
+    val displayScore = scorePercentage / 10
 
-    Scaffold(containerColor = Color.White) { paddingValues ->
+    Scaffold(containerColor = MaterialTheme.colorScheme.background) { paddingValues ->
         Column(
             modifier = Modifier
                 .fillMaxSize()
@@ -51,17 +50,17 @@ fun QuizHistoryResultScreen(
 
             Spacer(modifier = Modifier.height(24.dp))
 
-            Text(text = "Hasil Kuis", fontSize = 24.sp, fontWeight = FontWeight.Bold, color = Color.Black)
+            Text(text = "Hasil Kuis", fontSize = 24.sp, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onSurface)
             Spacer(modifier = Modifier.height(8.dp))
-            Text(text = item?.title ?: "Materi", fontSize = 14.sp, color = Color(0xFF6B7280))
+            Text(text = item?.title ?: "Materi", fontSize = 14.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
 
             Spacer(modifier = Modifier.height(32.dp))
 
             Card(
                 modifier = Modifier.fillMaxWidth(),
                 shape = RoundedCornerShape(16.dp),
-                colors = CardDefaults.cardColors(containerColor = Color.White),
-                border = BorderStroke(1.dp, Color(0xFFE5E7EB))
+                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+                border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant)
             ) {
                 Column(modifier = Modifier.padding(20.dp)) {
                     Row(
@@ -69,8 +68,8 @@ fun QuizHistoryResultScreen(
                         horizontalArrangement = Arrangement.SpaceBetween,
                         verticalAlignment = Alignment.CenterVertically
                     ) {
-                        Text(text = "Skor Kamu", fontSize = 14.sp, color = Color(0xFF6B7280))
-                        Text(text = "$scorePercentage%", fontSize = 28.sp, fontWeight = FontWeight.Bold, color = AppColors.Purple)
+                        Text(text = "Skor Kamu", fontSize = 14.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                        Text(text = "$displayScore/10", fontSize = 28.sp, fontWeight = FontWeight.Bold, color = AppColors.Purple)
                     }
 
                     Spacer(modifier = Modifier.height(16.dp))
@@ -79,15 +78,26 @@ fun QuizHistoryResultScreen(
                         progress = { progress },
                         modifier = Modifier.fillMaxWidth().height(8.dp).clip(RoundedCornerShape(4.dp)),
                         color = AppColors.Purple,
-                        trackColor = Color(0xFFF3F4F6)
+                        trackColor = MaterialTheme.colorScheme.surfaceVariant
                     )
 
                     Spacer(modifier = Modifier.height(8.dp))
-                    Text(text = "$correctAnswers dari $totalQuestions benar", fontSize = 12.sp, color = Color(0xFF6B7280))
+                    Text(text = "$displayScore/10 Benar", fontSize = 12.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
                 }
             }
 
             Spacer(modifier = Modifier.weight(1f))
+
+            Button(
+                onClick = { onEvent(QuizHistoryEvent.ViewExplanation) },
+                modifier = Modifier.fillMaxWidth().height(56.dp),
+                shape = RoundedCornerShape(16.dp),
+                colors = ButtonDefaults.buttonColors(containerColor = AppColors.Purple)
+            ) {
+                Text("Lihat Pembahasan", fontWeight = FontWeight.Bold, fontSize = 16.sp, color = Color.White)
+            }
+
+            Spacer(modifier = Modifier.height(16.dp))
 
             OutlinedButton(
                 onClick = { onEvent(QuizHistoryEvent.NavigateBack) },

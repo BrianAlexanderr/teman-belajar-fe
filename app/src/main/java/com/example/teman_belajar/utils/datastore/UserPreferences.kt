@@ -17,7 +17,9 @@ class UserPreferences(private val context: Context) {
     companion object {
         val IS_FIRST_TIME = booleanPreferencesKey("is_first_time")
         val IS_LOGGED_IN = booleanPreferencesKey("is_logged_in")
+        val IS_DARK_MODE = booleanPreferencesKey("is_dark_mode")
 
+        val USER_ID = stringPreferencesKey("user_id")
         val USER_NAME = stringPreferencesKey("user_name")
 
         val AUTH_TOKEN = stringPreferencesKey("auth_token")
@@ -38,6 +40,16 @@ class UserPreferences(private val context: Context) {
         preferences[IS_LOGGED_IN] ?: false
     }
 
+    val isDarkModeFlow: Flow<Boolean> = context.dataStore.data.map { preferences ->
+        preferences[IS_DARK_MODE] ?: false
+    }
+
+    suspend fun setDarkMode(enabled: Boolean) {
+        context.dataStore.edit { preferences ->
+            preferences[IS_DARK_MODE] = enabled
+        }
+    }
+
     val authTokenFlow: Flow<String?> = context.dataStore.data.map { preferences ->
         preferences[AUTH_TOKEN]
     }
@@ -46,17 +58,27 @@ class UserPreferences(private val context: Context) {
         preferences[REFRESH_TOKEN]
     }
 
+    val userIdFlow: Flow<String?> = context.dataStore.data.map { preferences ->
+        preferences[USER_ID]
+    }
+
     val userNameFlow: Flow<String?> = context.dataStore.data.map { preferences ->
         preferences[USER_NAME]
     }
 
-    suspend fun setLoggedIn(isLoggedIn: Boolean, userName: String? = null, token: String? = null, refreshToken: String? = null) {
+    suspend fun setLoggedIn(isLoggedIn: Boolean, userId: String? = null, userName: String? = null, token: String? = null, refreshToken: String? = null) {
         context.dataStore.edit { preferences ->
             preferences[IS_LOGGED_IN] = isLoggedIn
 
+            if (userId != null) {
+                preferences[USER_ID] = userId
+            } else {
+                preferences.remove(USER_ID)
+            }
+
             if (userName != null) {
                 preferences[USER_NAME] = userName
-            }else {
+            } else {
                 preferences.remove(USER_NAME)
             }
 

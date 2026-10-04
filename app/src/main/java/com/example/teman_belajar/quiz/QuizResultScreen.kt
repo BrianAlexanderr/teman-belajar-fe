@@ -27,8 +27,11 @@ fun QuizResultScreen(
     val correctAnswers = uiState.correctAnswersCount
     val scorePercentage = if (totalQuestions > 0) (correctAnswers * 100) / totalQuestions else 0
     val progress = if (totalQuestions > 0) correctAnswers.toFloat() / totalQuestions else 0f
+    
+    // Konversi skor ke skala 10 sesuai permintaan: score 70 -> 7/10
+    val displayScore = scorePercentage / 10
 
-    Scaffold(containerColor = Color.White) { paddingValues ->
+    Scaffold(containerColor = MaterialTheme.colorScheme.background) { paddingValues ->
         Column(
             modifier = Modifier
                 .fillMaxSize()
@@ -59,7 +62,7 @@ fun QuizResultScreen(
                 text = "Kuis Selesai!",
                 fontSize = 24.sp,
                 fontWeight = FontWeight.Bold,
-                color = Color.Black
+                color = MaterialTheme.colorScheme.onSurface
             )
 
             Spacer(modifier = Modifier.height(8.dp))
@@ -67,7 +70,7 @@ fun QuizResultScreen(
             Text(
                 text = "Kerja bagus telah menyelesaikan kuis ini",
                 fontSize = 14.sp,
-                color = Color(0xFF6B7280)
+                color = MaterialTheme.colorScheme.onSurfaceVariant
             )
 
             Spacer(modifier = Modifier.height(32.dp))
@@ -75,8 +78,8 @@ fun QuizResultScreen(
             Card(
                 modifier = Modifier.fillMaxWidth(),
                 shape = RoundedCornerShape(16.dp),
-                colors = CardDefaults.cardColors(containerColor = Color.White),
-                border = BorderStroke(1.dp, Color(0xFFE5E7EB))
+                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+                border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant)
             ) {
                 Column(modifier = Modifier.padding(20.dp)) {
                     Row(
@@ -87,10 +90,10 @@ fun QuizResultScreen(
                         Text(
                             text = "Skor Kamu",
                             fontSize = 14.sp,
-                            color = Color(0xFF6B7280)
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
                         Text(
-                            text = "$scorePercentage%",
+                            text = "$displayScore/10",
                             fontSize = 28.sp,
                             fontWeight = FontWeight.Bold,
                             color = AppColors.Purple
@@ -103,15 +106,15 @@ fun QuizResultScreen(
                         progress = { progress },
                         modifier = Modifier.fillMaxWidth().height(8.dp).clip(RoundedCornerShape(4.dp)),
                         color = AppColors.Purple,
-                        trackColor = Color(0xFFF3F4F6)
+                        trackColor = MaterialTheme.colorScheme.surfaceVariant
                     )
 
                     Spacer(modifier = Modifier.height(8.dp))
 
                     Text(
-                        text = "$correctAnswers dari $totalQuestions benar",
+                        text = "$displayScore/10 Benar",
                         fontSize = 12.sp,
-                        color = Color(0xFF6B7280)
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
                 }
             }
@@ -124,7 +127,7 @@ fun QuizResultScreen(
                 shape = RoundedCornerShape(16.dp),
                 colors = ButtonDefaults.buttonColors(containerColor = AppColors.Purple)
             ) {
-                Text("Lihat Pembahasan", fontWeight = FontWeight.Bold, fontSize = 16.sp)
+                Text("Lihat Pembahasan", fontWeight = FontWeight.Bold, fontSize = 16.sp, color = Color.White)
             }
 
             Spacer(modifier = Modifier.height(16.dp))
