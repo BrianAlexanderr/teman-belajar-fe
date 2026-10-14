@@ -104,3 +104,10 @@ data class QuestionAttemptDetailResponse(
     @SerializedName("explaination")
     val explanation: String?
 )
+
+data class UserProfileResponse(
+    val userName: String?,
+    val email: String?,
+    val jumlahAttemptedQuiz: Int?,
+    val averageScore: Double?
+)

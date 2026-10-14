@@ -90,3 +90,8 @@ data class SubmitQuizRequest(
     val quizId: String,
     val questionAttempts: List<QuestionAttemptRequest>
 )
+
+data class UpdateProfileRequest(
+    val name: String,
+    val email: String
+)

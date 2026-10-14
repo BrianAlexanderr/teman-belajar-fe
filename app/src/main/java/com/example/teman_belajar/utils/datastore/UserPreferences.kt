@@ -66,6 +66,12 @@ class UserPreferences(private val context: Context) {
         preferences[USER_NAME]
     }
 
+    suspend fun setUserName(userName: String) {
+        context.dataStore.edit { preferences ->
+            preferences[USER_NAME] = userName
+        }
+    }
+
     suspend fun setLoggedIn(isLoggedIn: Boolean, userId: String? = null, userName: String? = null, token: String? = null, refreshToken: String? = null) {
         context.dataStore.edit { preferences ->
             preferences[IS_LOGGED_IN] = isLoggedIn
