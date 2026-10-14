@@ -1,5 +1,6 @@
 package com.example.teman_belajar.profile
 
+import android.widget.Toast
 import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.core.animateDpAsState
 import androidx.compose.foundation.BorderStroke
@@ -23,12 +24,14 @@ import androidx.compose.material.icons.outlined.TrackChanges
 import androidx.compose.material.icons.outlined.WbSunny
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
@@ -45,7 +48,7 @@ fun DayNightDarkModeToggle(
         targetValue = if (isDarkMode) Color(0xFF4A5568) else Color(0xFFE2E8F0),
         label = "bgColor"
     )
-    
+
     val thumbOffset by animateDpAsState(
         targetValue = if (isDarkMode) 36.dp else 0.dp,
         label = "thumbOffset"
@@ -125,6 +128,22 @@ fun ProfileScreen(
     onNavigateToHome: () -> Unit,
     onNavigateToQuizHistory: () -> Unit
 ) {
+    val context = LocalContext.current
+
+    LaunchedEffect(uiState.errorMessage) {
+        uiState.errorMessage?.let { errorMsg ->
+            Toast.makeText(context, errorMsg, Toast.LENGTH_SHORT).show()
+            onEvent(ProfileEvent.ClearMessages)
+        }
+    }
+
+    LaunchedEffect(uiState.successMessage) {
+        uiState.successMessage?.let { successMsg ->
+            Toast.makeText(context, successMsg, Toast.LENGTH_SHORT).show()
+            onEvent(ProfileEvent.ClearMessages)
+        }
+    }
+
     Scaffold(
         topBar = {
             TopAppBar(
@@ -151,9 +170,8 @@ fun ProfileScreen(
         containerColor = MaterialTheme.colorScheme.background
     ) { paddingValues ->
         Box(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(paddingValues)
+            modifier = Modifier.fillMaxSize()
+                .padding(top = paddingValues.calculateTopPadding())
         ) {
             Box(
                 modifier = Modifier
@@ -347,9 +365,24 @@ fun ProfileScreen(
                     }
                 }
 
-                Spacer(modifier = Modifier.height(40.dp))
+                Spacer(modifier = Modifier.height(paddingValues.calculateBottomPadding() + 40.dp))
             }
         }
+    }
+
+    if (uiState.isEditDialogVisible) {
+        com.example.teman_belajar.components.DoubleTextInputDialog(
+            title = "Edit Profil",
+            subtitle = "Perbarui nama dan email Anda.",
+            value1 = uiState.editNameInput,
+            onValueChange1 = { onEvent(ProfileEvent.EditNameChanged(it)) },
+            placeholder1 = "Nama Lengkap",
+            value2 = uiState.editEmailInput,
+            onValueChange2 = { onEvent(ProfileEvent.EditEmailChanged(it)) },
+            placeholder2 = "Email",
+            onDismiss = { onEvent(ProfileEvent.DismissEditDialog) },
+            onConfirm = { onEvent(ProfileEvent.SubmitEditProfile) }
+        )
     }
 }
 

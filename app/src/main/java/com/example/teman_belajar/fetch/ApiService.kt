@@ -178,6 +178,12 @@ interface ApiService {
     @DELETE("/api/summary/{id}")
     suspend fun deleteSummary(@Path("id") id: String) : retrofit2.Response<Unit>
 
+    @GET("/api/user/profile")
+    suspend fun getUserProfile() : Response<UserProfileResponse>
+
+    @PUT("/api/user/update")
+    suspend fun updateUserProfile(@Body request: UpdateProfileRequest) : Response<GeneralResponse>
+
     companion object {
         val BASE_URL: String
             get() {

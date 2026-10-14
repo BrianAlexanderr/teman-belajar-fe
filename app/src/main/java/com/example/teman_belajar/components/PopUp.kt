@@ -304,3 +304,81 @@ fun SessionExpiredDialog(
         containerColor = MaterialTheme.colorScheme.surface
     )
 }
+
+@Composable
+fun DoubleTextInputDialog(
+    title: String,
+    subtitle: String,
+    value1: String,
+    onValueChange1: (String) -> Unit,
+    placeholder1: String,
+    value2: String,
+    onValueChange2: (String) -> Unit,
+    placeholder2: String,
+    onDismiss: () -> Unit,
+    onConfirm: () -> Unit,
+    confirmButtonText: String = "Simpan",
+    dismissButtonText: String = "Batal"
+) {
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = {
+            Text(text = title, fontWeight = FontWeight.Bold, fontSize = 20.sp, color = MaterialTheme.colorScheme.onSurface)
+        },
+        text = {
+            Column {
+                Text(
+                    text = subtitle,
+                    fontSize = 14.sp,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.padding(bottom = 16.dp)
+                )
+                OutlinedTextField(
+                    value = value1,
+                    onValueChange = onValueChange1,
+                    placeholder = { Text(placeholder1, color = MaterialTheme.colorScheme.onSurfaceVariant) },
+                    modifier = Modifier.fillMaxWidth().padding(bottom = 12.dp),
+                    shape = RoundedCornerShape(12.dp),
+                    singleLine = true,
+                    colors = OutlinedTextFieldDefaults.colors(
+                        focusedBorderColor = AppColors.Purple,
+                        unfocusedBorderColor = MaterialTheme.colorScheme.outlineVariant,
+                        focusedTextColor = MaterialTheme.colorScheme.onSurface,
+                        unfocusedTextColor = MaterialTheme.colorScheme.onSurface
+                    )
+                )
+                OutlinedTextField(
+                    value = value2,
+                    onValueChange = onValueChange2,
+                    placeholder = { Text(placeholder2, color = MaterialTheme.colorScheme.onSurfaceVariant) },
+                    modifier = Modifier.fillMaxWidth(),
+                    shape = RoundedCornerShape(12.dp),
+                    singleLine = true,
+                    colors = OutlinedTextFieldDefaults.colors(
+                        focusedBorderColor = AppColors.Purple,
+                        unfocusedBorderColor = MaterialTheme.colorScheme.outlineVariant,
+                        focusedTextColor = MaterialTheme.colorScheme.onSurface,
+                        unfocusedTextColor = MaterialTheme.colorScheme.onSurface
+                    )
+                )
+            }
+        },
+        confirmButton = {
+            Button(
+                onClick = onConfirm,
+                colors = ButtonDefaults.buttonColors(containerColor = AppColors.Purple),
+                shape = RoundedCornerShape(12.dp),
+                enabled = value1.isNotBlank() && value2.isNotBlank()
+            ) {
+                Text(confirmButtonText, color = Color.White, fontWeight = FontWeight.Bold)
+            }
+        },
+        dismissButton = {
+            TextButton(onClick = onDismiss) {
+                Text(dismissButtonText, color = MaterialTheme.colorScheme.onSurfaceVariant)
+            }
+        },
+        shape = RoundedCornerShape(28.dp),
+        containerColor = MaterialTheme.colorScheme.surface
+    )
+}
