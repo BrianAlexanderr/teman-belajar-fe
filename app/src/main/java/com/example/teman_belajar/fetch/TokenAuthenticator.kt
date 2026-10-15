@@ -5,6 +5,7 @@ import com.example.teman_belajar.utils.SessionManager
 import com.example.teman_belajar.utils.datastore.UserPreferences
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 import okhttp3.Authenticator
 import okhttp3.Request
@@ -42,7 +43,12 @@ class TokenAuthenticator(
                     TokenManager.refreshToken = newRefreshToken ?: refreshToken
 
                     CoroutineScope(Dispatchers.IO).launch {
-                        userPreferences.setLoggedIn(true, userName, TokenManager.refreshToken)
+                        userPreferences.setLoggedIn(
+                            isLoggedIn = true,
+                            userName = userName ?: userPreferences.userNameFlow.first(),
+                            token = newAccessToken,
+                            refreshToken = TokenManager.refreshToken
+                        )
                     }
 
                     return response.request.newBuilder()

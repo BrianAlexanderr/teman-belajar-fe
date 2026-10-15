@@ -170,6 +170,15 @@ class FolderDetailViewModel(application: Application) : AndroidViewModel(applica
         loadMaterials(id)
     }
 
+    private fun parseErrorMessage(errorBody: String?): String {
+        return try {
+            if (errorBody.isNullOrEmpty()) "Terjadi kesalahan sistem"
+            else JSONObject(errorBody).optString("message", "Terjadi kesalahan sistem")
+        } catch (e: Exception) {
+            "Gagal memproses permintaan"
+        }
+    }
+
     private suspend fun fetchMaterialsInternal(folderId: String): List<DummyFile> = coroutineScope {
         val response = apiService.getFolderMaterials(folderId)
         if (response.isSuccessful) {
@@ -558,8 +567,14 @@ class FolderDetailViewModel(application: Application) : AndroidViewModel(applica
                 viewModelScope.launch {
                     try {
                         val res = apiService.generateQuiz(_uiState.value.folderId)
-                        if (res.isSuccessful) _uiState.update { it.copy(successMessage = "Kuis sedang dibuat!") }
-                    } catch (e: Exception) {}
+                        if (res.isSuccessful) {
+                            _uiState.update { it.copy(successMessage = "Kuis sedang dibuat!") }
+                        } else {
+                            _uiState.update { it.copy(errorMessage = parseErrorMessage(res.errorBody()?.string())) }
+                        }
+                    } catch (e: Exception) {
+                        _uiState.update { it.copy(errorMessage = "Jaringan bermasalah") }
+                    }
                 }
             }
             FolderDetailEvent.SmartSummaryClicked -> {
@@ -623,7 +638,7 @@ class FolderDetailViewModel(application: Application) : AndroidViewModel(applica
                             onNavigateToSummaryDetail?.invoke(generatedSummary.id ?: "")
 
                         } else {
-                            _uiState.update { it.copy(isGeneratingSummary = false, errorMessage = "Gagal membuat summary") }
+                            _uiState.update { it.copy(isGeneratingSummary = false, errorMessage = parseErrorMessage(response.errorBody()?.string())) }
                         }
                     } catch (e: Exception) {
                         _uiState.update { it.copy(isGeneratingSummary = false, errorMessage = "Jaringan bermasalah") }
