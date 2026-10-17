@@ -145,17 +145,6 @@ fun ProfileScreen(
     }
 
     Scaffold(
-        topBar = {
-            TopAppBar(
-                title = { },
-                navigationIcon = {
-                    IconButton(onClick = { onEvent(ProfileEvent.NavigateBack) }) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back", tint = MaterialTheme.colorScheme.onSurface)
-                    }
-                },
-                colors = TopAppBarDefaults.topAppBarColors(containerColor = MaterialTheme.colorScheme.surface)
-            )
-        },
         bottomBar = {
             Navbar(
                 currentRoute = "profile",

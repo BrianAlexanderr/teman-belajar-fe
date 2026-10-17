@@ -173,7 +173,11 @@ class FolderDetailViewModel(application: Application) : AndroidViewModel(applica
     private fun parseErrorMessage(errorBody: String?): String {
         return try {
             if (errorBody.isNullOrEmpty()) "Terjadi kesalahan sistem"
-            else JSONObject(errorBody).optString("message", "Terjadi kesalahan sistem")
+            else JSONObject(errorBody).let { obj ->
+                obj.optString("message").takeIf { it.isNotBlank() }
+                    ?: obj.optString("msg").takeIf { it.isNotBlank() }
+                    ?: "Terjadi kesalahan sistem"
+            }
         } catch (e: Exception) {
             "Gagal memproses permintaan"
         }
@@ -630,10 +634,14 @@ class FolderDetailViewModel(application: Application) : AndroidViewModel(applica
                                     materials = files,
                                     smartSummaries = summaries,
                                     selectedMaterialIds = emptySet(),
-                                    isGeneratingSummary = false,
-                                    successMessage = "Ringkasan berhasil dibuat!"
+                                    isGeneratingSummary = false
                                 )
                             }
+                            Toast.makeText(
+                                getApplication<Application>().applicationContext,
+                                "Ringkasan berhasil dibuat!",
+                                Toast.LENGTH_SHORT
+                            ).show()
 
                             onNavigateToSummaryDetail?.invoke(generatedSummary.id ?: "")
 
