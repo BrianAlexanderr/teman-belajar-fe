@@ -2,6 +2,7 @@ package com.example.teman_belajar.folderdetail
 
 import android.app.Application
 import android.util.Log
+import android.widget.Toast
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.teman_belajar.fetch.ApiService
@@ -107,6 +108,11 @@ class SmartSummaryDetailViewModel(application: Application) : AndroidViewModel(a
 
                 if (response.isSuccessful) {
                     _uiState.update { it.copy(isGeneratingQuiz = false) }
+                    Toast.makeText(
+                        getApplication<Application>().applicationContext,
+                        response.body()?.message ?: "Kuis berhasil dibuat",
+                        Toast.LENGTH_SHORT
+                    ).show()
                     onNavigateToQuiz?.invoke()
                 } else {
                     val errorMsg = parseError(response.errorBody()?.string()) ?: "Gagal membuat kuis (${response.code()})"

@@ -28,7 +28,7 @@ data class ProfileUiState(
 )
 
 sealed class ProfileEvent {
-    object NavigateBack : ProfileEvent()
+//    object NavigateBack : ProfileEvent()
     object EditProfile : ProfileEvent()
     object DismissEditDialog : ProfileEvent()
     object SubmitEditProfile : ProfileEvent()
@@ -48,7 +48,7 @@ class ProfileViewModel(application: Application) : AndroidViewModel(application)
     private val _uiState = MutableStateFlow(ProfileUiState())
     val uiState: StateFlow<ProfileUiState> = _uiState.asStateFlow()
 
-    var onNavigateBack: (() -> Unit)? = null
+//    var onNavigateBack: (() -> Unit)? = null
     var onLogout: (() -> Unit)? = null
 
     init {
@@ -103,7 +103,7 @@ class ProfileViewModel(application: Application) : AndroidViewModel(application)
 
     fun onEvent(event: ProfileEvent) {
         when (event) {
-            ProfileEvent.NavigateBack -> onNavigateBack?.invoke()
+//            ProfileEvent.NavigateBack -> onNavigateBack?.invoke()
             ProfileEvent.EditProfile -> {
                 _uiState.update {
                     it.copy(

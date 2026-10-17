@@ -224,9 +224,9 @@ class MainActivity : ComponentActivity() {
                         composable("profile") {
                             val uiState by profileViewModel.uiState.collectAsState()
 
-                            profileViewModel.onNavigateBack = {
-                                navController.popBackStack()
-                            }
+//                            profileViewModel.onNavigateBack = {
+//                                navController.popBackStack()
+//                            }
 
                             profileViewModel.onLogout = {
                                 navController.navigate("login") {

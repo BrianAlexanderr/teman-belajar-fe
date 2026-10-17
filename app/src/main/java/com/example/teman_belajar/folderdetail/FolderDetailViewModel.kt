@@ -630,10 +630,14 @@ class FolderDetailViewModel(application: Application) : AndroidViewModel(applica
                                     materials = files,
                                     smartSummaries = summaries,
                                     selectedMaterialIds = emptySet(),
-                                    isGeneratingSummary = false,
-                                    successMessage = "Ringkasan berhasil dibuat!"
+                                    isGeneratingSummary = false
                                 )
                             }
+                            Toast.makeText(
+                                getApplication<Application>().applicationContext,
+                                "Ringkasan berhasil dibuat!",
+                                Toast.LENGTH_SHORT
+                            ).show()
 
                             onNavigateToSummaryDetail?.invoke(generatedSummary.id ?: "")
 
