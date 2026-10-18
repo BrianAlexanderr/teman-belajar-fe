@@ -3,7 +3,8 @@ package com.example.teman_belajar.profile
 import android.app.Application
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
-    import com.example.teman_belajar.fetch.ApiService
+import com.example.teman_belajar.fetch.ApiService
+import com.example.teman_belajar.fetch.TokenManager
 import com.example.teman_belajar.fetch.model.UpdateProfileRequest
 import com.example.teman_belajar.utils.datastore.UserPreferences
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -28,7 +29,7 @@ data class ProfileUiState(
 )
 
 sealed class ProfileEvent {
-//    object NavigateBack : ProfileEvent()
+    object LoadProfile : ProfileEvent()
     object EditProfile : ProfileEvent()
     object DismissEditDialog : ProfileEvent()
     object SubmitEditProfile : ProfileEvent()
@@ -48,13 +49,22 @@ class ProfileViewModel(application: Application) : AndroidViewModel(application)
     private val _uiState = MutableStateFlow(ProfileUiState())
     val uiState: StateFlow<ProfileUiState> = _uiState.asStateFlow()
 
-//    var onNavigateBack: (() -> Unit)? = null
     var onLogout: (() -> Unit)? = null
 
     init {
+        // Pantau status dark mode
         viewModelScope.launch {
             userPreferences.isDarkModeFlow.collect { isDark ->
                 _uiState.update { it.copy(isDarkMode = isDark) }
+            }
+        }
+
+        // PENTING: Jika status login berubah jadi false, riset data profile agar tidak "nyangkut" ke user berikutnya
+        viewModelScope.launch {
+            userPreferences.isLoggedInFlow.collect { isLoggedIn ->
+                if (!isLoggedIn) {
+                    _uiState.value = ProfileUiState()
+                }
             }
         }
 
@@ -66,7 +76,6 @@ class ProfileViewModel(application: Application) : AndroidViewModel(application)
             _uiState.update { it.copy(isLoading = true, errorMessage = null) }
             try {
                 val profileResponse = apiService.getUserProfile()
-
                 val historyResponse = apiService.getQuizAttempted()
 
                 var passedQuizzes = 0
@@ -103,7 +112,7 @@ class ProfileViewModel(application: Application) : AndroidViewModel(application)
 
     fun onEvent(event: ProfileEvent) {
         when (event) {
-//            ProfileEvent.NavigateBack -> onNavigateBack?.invoke()
+            ProfileEvent.LoadProfile -> fetchProfile()
             ProfileEvent.EditProfile -> {
                 _uiState.update {
                     it.copy(
@@ -159,7 +168,9 @@ class ProfileViewModel(application: Application) : AndroidViewModel(application)
             }
             ProfileEvent.Logout -> {
                 viewModelScope.launch {
+                    TokenManager.clearTokens()
                     userPreferences.setLoggedIn(false)
+                    _uiState.value = ProfileUiState()
                     onLogout?.invoke()
                 }
             }

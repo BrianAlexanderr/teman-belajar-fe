@@ -26,6 +26,7 @@ import com.example.teman_belajar.register.ui.RegistrationViewModel
 import com.example.teman_belajar.components.SessionExpiredDialog
 import com.example.teman_belajar.home.HomeScreen
 import com.example.teman_belajar.home.HomeViewModel
+import com.example.teman_belajar.home.HomeEvent
 import com.example.teman_belajar.splash.SplashScreen
 import com.example.teman_belajar.theme.TemanBelajarTheme
 import com.example.teman_belajar.utils.SessionManager
@@ -36,6 +37,7 @@ import com.example.teman_belajar.quiz.QuizListScreen
 import com.example.teman_belajar.quiz.QuizListViewModel
 import com.example.teman_belajar.profile.ProfileScreen
 import com.example.teman_belajar.profile.ProfileViewModel
+import com.example.teman_belajar.profile.ProfileEvent
 
 class MainActivity : ComponentActivity() {
 
@@ -104,6 +106,11 @@ class MainActivity : ComponentActivity() {
                         }
 
                         composable("home") {
+                            // Fetch data Home setiap kali halaman dibuka
+                            LaunchedEffect(Unit) {
+                                homeViewModel.onEvent(HomeEvent.FetchFolders)
+                            }
+
                             val uiState by homeViewModel.uiState.collectAsState()
                             homeViewModel.onNavigateToLogin = {
                                 navController.navigate("login") {
@@ -222,11 +229,12 @@ class MainActivity : ComponentActivity() {
                         }
 
                         composable("profile") {
-                            val uiState by profileViewModel.uiState.collectAsState()
+                            // Panggil refresh data setiap kali halaman Profile dibuka
+                            LaunchedEffect(Unit) {
+                                profileViewModel.onEvent(ProfileEvent.LoadProfile)
+                            }
 
-//                            profileViewModel.onNavigateBack = {
-//                                navController.popBackStack()
-//                            }
+                            val uiState by profileViewModel.uiState.collectAsState()
 
                             profileViewModel.onLogout = {
                                 navController.navigate("login") {

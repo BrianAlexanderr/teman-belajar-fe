@@ -76,8 +76,8 @@ class LoginViewModel(application: Application) : AndroidViewModel(application) {
                     val token = body?.token
                     val refreshToken = body?.refreshToken
                     val userName = body?.userName
-//                    val userId = body?.id
 
+                    // 1. Update singleton token manager segera agar request berikutnya menggunakan token baru
                     TokenManager.initializeTokens(token, refreshToken)
 
                     _uiState.update {
@@ -88,18 +88,18 @@ class LoginViewModel(application: Application) : AndroidViewModel(application) {
                         )
                     }
 
-                    viewModelScope.launch {
-                        // Memperbaiki urutan parameter menggunakan named arguments
-                        userPreferences.setLoggedIn(
-                            isLoggedIn = true,
-//                            userId = userId,
-                            userName = userName,
-                            token = token,
-                            refreshToken = refreshToken
-                        )
-                    }
+                    // 2. Simpan ke DataStore dan TUNGGU (suspend) sampai proses tulis selesai
+                    // Jangan gunakan launch baru agar eksekusi di bawahnya menunggu proses ini tuntas
+                    userPreferences.setLoggedIn(
+                        isLoggedIn = true,
+                        userName = userName,
+                        token = token,
+                        refreshToken = refreshToken
+                    )
 
+                    // 3. Navigasi dipanggil SETELAH data dipastikan tersimpan
                     onLoginSuccess?.invoke()
+
                 } else {
                     val errorJson = response.errorBody()?.string()
                     Log.e("LoginError", "Isi errorJson: $errorJson")
