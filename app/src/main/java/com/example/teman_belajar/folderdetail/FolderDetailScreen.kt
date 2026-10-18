@@ -159,6 +159,20 @@ fun FolderDetailScreen(
         }
     }
 
+    LaunchedEffect(uiState.errorMessage) {
+        uiState.errorMessage?.let { errorMsg ->
+            Toast.makeText(context, errorMsg, Toast.LENGTH_SHORT).show()
+            onEvent(FolderDetailEvent.ClearError)
+        }
+    }
+
+    LaunchedEffect(uiState.successMessage) {
+        uiState.successMessage?.let { successMsg ->
+            Toast.makeText(context, successMsg, Toast.LENGTH_SHORT).show()
+            onEvent(FolderDetailEvent.ClearSuccessMessage)
+        }
+    }
+
     val takePictureLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.TakePicturePreview()
     ) { bitmap ->
@@ -431,28 +445,6 @@ fun FolderDetailScreen(
                     Spacer(Modifier.height(24.dp))
                     Text("Sedang membuat ringkasan...", fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onSurface)
                     Text("Harap tunggu sebentar.", fontSize = 12.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                }
-            }
-        }
-    }
-
-    if (uiState.errorMessage != null) {
-        Dialog(onDismissRequest = { onEvent(FolderDetailEvent.ClearError) }) {
-            Card(shape = RoundedCornerShape(16.dp), colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)) {
-                Column(modifier = Modifier.padding(32.dp), horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.Center) {
-                    Icon(Icons.Default.ErrorOutline, contentDescription = "Kesalahan", tint = AppColors.Error, modifier = Modifier.size(48.dp))
-                    Spacer(Modifier.height(24.dp))
-                    Text("Gagal", fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onSurface)
-                    Text(uiState.errorMessage ?: "", fontSize = 12.sp, textAlign = TextAlign.Center, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                    Spacer(Modifier.height(24.dp))
-                    Button(
-                        onClick = { onEvent(FolderDetailEvent.ClearError) },
-                        modifier = Modifier.fillMaxWidth(),
-                        shape = RoundedCornerShape(12.dp),
-                        colors = ButtonDefaults.buttonColors(containerColor = AppColors.Purple)
-                    ) {
-                        Text("Tutup", color = Color.White, fontWeight = FontWeight.Bold)
-                    }
                 }
             }
         }

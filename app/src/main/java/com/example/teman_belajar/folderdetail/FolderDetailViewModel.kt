@@ -293,12 +293,6 @@ class FolderDetailViewModel(application: Application) : AndroidViewModel(applica
                     val extractedText = performLocalOcr(contentUri)
 
                     if (extractedText.isBlank()) {
-                        Toast.makeText(
-                            getApplication<Application>().applicationContext,
-                            "Tidak ada teks yang terbaca",
-                            Toast.LENGTH_SHORT
-                        ).show()
-
                         _uiState.update { it.copy(isLoading = false, errorMessage = "Tidak ada teks yang dapat dibaca dari gambar ini") }
                         return@launch
                     }
@@ -320,7 +314,7 @@ class FolderDetailViewModel(application: Application) : AndroidViewModel(applica
                             isLoading = false
                         ) }
                     } else {
-                        _uiState.update { it.copy(isLoading = false, errorMessage = "Gagal memproses teks gambar ke server") }
+                        _uiState.update { it.copy(isLoading = false, errorMessage = parseErrorMessage(response.errorBody()?.string())) }
                     }
 
                 }
@@ -366,7 +360,7 @@ class FolderDetailViewModel(application: Application) : AndroidViewModel(applica
                     _uiState.update { it.copy(isLoading = false, errorMessage = "Gagal mengunggah dokumen") }
                 }
             } catch (e: Exception) {
-                _uiState.update { it.copy(isLoading = false, errorMessage = e.message) }
+                _uiState.update { it.copy(isLoading = false, errorMessage = "Gagal mengunggah: ${e.message}") }
             }
         }
     }
@@ -413,19 +407,19 @@ class FolderDetailViewModel(application: Application) : AndroidViewModel(applica
 
         viewModelScope.launch {
             try {
-                val responseIsSuccessful = if (file.isSmartSummary) {
-                    apiService.deleteSummary(file.id).isSuccessful
+                val response = if (file.isSmartSummary) {
+                    apiService.deleteSummary(file.id)
                 } else {
-                    apiService.deleteMaterial(file.id).isSuccessful
+                    apiService.deleteMaterial(file.id)
                 }
 
-                if (responseIsSuccessful) {
-                    _uiState.update { it.copy(successMessage = "Terhapus!") }
+                if (response.isSuccessful) {
+                    _uiState.update { it.copy(successMessage = "${file.name} berhasil dihapus!") }
                 } else {
-                    _uiState.update { it.copy(allFiles = oldState.allFiles, materials = oldState.materials, smartSummaries = oldState.smartSummaries) }
+                    _uiState.update { it.copy(allFiles = oldState.allFiles, materials = oldState.materials, smartSummaries = oldState.smartSummaries, errorMessage = parseErrorMessage(response.errorBody()?.string())) }
                 }
             } catch (e: Exception) {
-                _uiState.update { it.copy(allFiles = oldState.allFiles, materials = oldState.materials, smartSummaries = oldState.smartSummaries) }
+                _uiState.update { it.copy(allFiles = oldState.allFiles, materials = oldState.materials, smartSummaries = oldState.smartSummaries, errorMessage = "Gagal menghapus: jaringan bermasalah") }
             }
         }
     }
@@ -450,13 +444,14 @@ class FolderDetailViewModel(application: Application) : AndroidViewModel(applica
 
         viewModelScope.launch {
             try {
-                if (apiService.renameMaterial(RenameMaterialRequest(file.id, newName)).isSuccessful) {
-                    _uiState.update { it.copy(successMessage = "Nama diubah!") }
+                val response = apiService.renameMaterial(RenameMaterialRequest(file.id, newName))
+                if (response.isSuccessful) {
+                    _uiState.update { it.copy(successMessage = "Nama materi berhasil diubah!") }
                 } else {
-                    _uiState.update { it.copy(allFiles = oldState.allFiles, materials = oldState.materials, smartSummaries = oldState.smartSummaries) }
+                    _uiState.update { it.copy(allFiles = oldState.allFiles, materials = oldState.materials, smartSummaries = oldState.smartSummaries, errorMessage = parseErrorMessage(response.errorBody()?.string())) }
                 }
             } catch (e: Exception) {
-                _uiState.update { it.copy(allFiles = oldState.allFiles, materials = oldState.materials, smartSummaries = oldState.smartSummaries) }
+                _uiState.update { it.copy(allFiles = oldState.allFiles, materials = oldState.materials, smartSummaries = oldState.smartSummaries, errorMessage = "Gagal mengubah nama: jaringan bermasalah") }
             }
         }
     }
@@ -470,9 +465,9 @@ class FolderDetailViewModel(application: Application) : AndroidViewModel(applica
             try {
                 val response = apiService.renameFolder(RenameFolderRequest(UUID.fromString(folderId), newName))
                 if (response.isSuccessful) {
-                    _uiState.update { it.copy(folderName = newName, isRenameFolderDialogVisible = false, successMessage = "Folder diubah!") }
+                    _uiState.update { it.copy(folderName = newName, isRenameFolderDialogVisible = false, successMessage = "Nama folder berhasil diubah!") }
                 } else {
-                    _uiState.update { it.copy(errorMessage = "Gagal mengubah folder") }
+                    _uiState.update { it.copy(errorMessage = parseErrorMessage(response.errorBody()?.string())) }
                 }
             } catch (e: Exception) {
                 _uiState.update { it.copy(errorMessage = e.message) }
@@ -488,9 +483,15 @@ class FolderDetailViewModel(application: Application) : AndroidViewModel(applica
             try {
                 val response = apiService.deleteFolder(UUID.fromString(folderId))
                 if (response.isSuccessful) {
+                    // Screen is popped right away, so toast directly instead of via uiState
+                    Toast.makeText(
+                        getApplication<Application>().applicationContext,
+                        "Folder berhasil dihapus!",
+                        Toast.LENGTH_SHORT
+                    ).show()
                     onNavigateBack?.invoke()
                 } else {
-                    _uiState.update { it.copy(errorMessage = "Gagal menghapus folder") }
+                    _uiState.update { it.copy(errorMessage = parseErrorMessage(response.errorBody()?.string())) }
                 }
             } catch (e: Exception) {
                 _uiState.update { it.copy(errorMessage = e.message) }

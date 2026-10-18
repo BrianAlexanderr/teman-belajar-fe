@@ -2,6 +2,7 @@ package com.example.teman_belajar.quiz
 
 import android.app.Application
 import android.util.Log
+import android.widget.Toast
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.teman_belajar.fetch.ApiService
@@ -9,6 +10,7 @@ import com.example.teman_belajar.fetch.model.CheckQuizRequest
 import com.example.teman_belajar.fetch.model.QuestionAttemptRequest
 import com.example.teman_belajar.fetch.model.SubmitQuizRequest
 import kotlinx.coroutines.flow.MutableStateFlow
+import org.json.JSONObject
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
@@ -436,21 +438,28 @@ class QuizViewModel(application: Application) : AndroidViewModel(application) {
 
             Log.d("QuizViewModel", "exitAndSave: Request Payload = $requestBody")
 
-            try {
+            val toastMessage = try {
                 val response = apiService.saveQuiz(request = requestBody)
                 Log.d("QuizViewModel", "exitAndSave: Response Code = ${response.code()}")
 
                 if (response.isSuccessful) {
                     Log.d("QuizViewModel", "exitAndSave: Success Body = ${response.body()}")
+                    "Progres kuis berhasil disimpan!"
                 } else {
                     val errorBody = response.errorBody()?.string()
                     Log.e("QuizViewModel", "exitAndSave: Error Body = $errorBody")
+                    try {
+                        JSONObject(errorBody ?: "").let { it.optString("message").ifBlank { it.optString("msg") } }
+                    } catch (_: Exception) { "" }.ifBlank { "Gagal menyimpan progres kuis" }
                 }
             } catch (e: Exception) {
                 Log.e("QuizViewModel", "exitAndSave: Exception occurred", e)
+                "Gagal menyimpan progres kuis: jaringan bermasalah"
             }
 
             _uiState.update { it.copy(isLoading = false) }
+            // Screen is popped right after, so toast directly instead of via uiState
+            Toast.makeText(getApplication<Application>().applicationContext, toastMessage, Toast.LENGTH_SHORT).show()
             onNavigateBack?.invoke()
         }
     }

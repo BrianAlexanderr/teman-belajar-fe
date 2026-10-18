@@ -214,7 +214,7 @@ fun SummaryDetailScreen(
                         )
                         Spacer(modifier = Modifier.height(4.dp))
                         Text(
-                            text = "AI siap membuat ${uiState.quizQuestionCount} pertanyaan kuis.",
+                            text = "AI siap membuat 10 pertanyaan kuis.",
                             fontSize = 12.sp,
                             color = if (isDark) MaterialTheme.colorScheme.onSurfaceVariant else Color(0xFF6D28D9)
                         )

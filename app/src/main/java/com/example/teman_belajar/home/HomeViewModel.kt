@@ -196,7 +196,10 @@ class HomeViewModel(application: Application) : AndroidViewModel(application) {
                     viewModelScope.launch {
                         try {
                             val response = apiService.renameFolder(RenameFolderRequest(folder.id, newName))
-                            if (response.isSuccessful) fetchFolders(true) else handleApiError(response, "Gagal mengubah nama folder")
+                            if (response.isSuccessful) {
+                                fetchFolders(true)
+                                _uiState.update { it.copy(successMessage = "Nama folder berhasil diubah!") }
+                            } else handleApiError(response, "Gagal mengubah nama folder")
                         } catch (_: Exception) { _uiState.update { it.copy(isLoading = false, errorMessage = "Terjadi kesalahan jaringan") } }
                     }
                 }
@@ -209,7 +212,10 @@ class HomeViewModel(application: Application) : AndroidViewModel(application) {
                     viewModelScope.launch {
                         try {
                             val response = apiService.deleteFolder(folder.id)
-                            if (response.isSuccessful) fetchFolders(true) else handleApiError(response, "Gagal menghapus folder")
+                            if (response.isSuccessful) {
+                                fetchFolders(true)
+                                _uiState.update { it.copy(successMessage = "Folder berhasil dihapus!") }
+                            } else handleApiError(response, "Gagal menghapus folder")
                         } catch (_: Exception) { _uiState.update { it.copy(isLoading = false, errorMessage = "Terjadi kesalahan jaringan") } }
                     }
                 }
