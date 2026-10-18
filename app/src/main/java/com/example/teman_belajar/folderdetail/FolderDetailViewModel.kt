@@ -295,7 +295,7 @@ class FolderDetailViewModel(application: Application) : AndroidViewModel(applica
                     if (extractedText.isBlank()) {
                         Toast.makeText(
                             getApplication<Application>().applicationContext,
-                            "No text is extracted",
+                            "Tidak ada teks yang terbaca",
                             Toast.LENGTH_SHORT
                         ).show()
 
@@ -363,7 +363,7 @@ class FolderDetailViewModel(application: Application) : AndroidViewModel(applica
                             }
                         }
                     }
-                    _uiState.update { it.copy(isLoading = false, errorMessage = "Gagal upload dokumen") }
+                    _uiState.update { it.copy(isLoading = false, errorMessage = "Gagal mengunggah dokumen") }
                 }
             } catch (e: Exception) {
                 _uiState.update { it.copy(isLoading = false, errorMessage = e.message) }
@@ -666,12 +666,12 @@ class FolderDetailViewModel(application: Application) : AndroidViewModel(applica
                             val downloadUrl = response.body()?.url
                             if (downloadUrl != null) {
                                 onDownloadFile?.invoke(downloadUrl, event.file.name)
-                                _uiState.update { it.copy(successMessage = "Memulai download...") }
+                                _uiState.update { it.copy(successMessage = "Mulai mengunduh...") }
                             } else {
-                                _uiState.update { it.copy(errorMessage = "Link download tidak valid") }
+                                _uiState.update { it.copy(errorMessage = "Tautan unduhan tidak valid") }
                             }
                         } else {
-                            _uiState.update { it.copy(errorMessage = "Gagal mendapatkan link download") }
+                            _uiState.update { it.copy(errorMessage = "Gagal mendapatkan tautan unduhan") }
                         }
                     } catch (e: Exception) {
                         _uiState.update { it.copy(errorMessage = "Terjadi kesalahan: ${e.message}") }

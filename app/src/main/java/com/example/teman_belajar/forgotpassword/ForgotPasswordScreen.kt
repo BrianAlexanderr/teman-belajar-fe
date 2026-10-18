@@ -29,18 +29,18 @@ fun ForgotPasswordScreen(
     onEvent: (ForgotPasswordEvent) -> Unit,
 ) {
     val steps = listOf(
-        ForgotPasswordStep("Details", Icons.Outlined.Badge),
-        ForgotPasswordStep("Code Verify", Icons.Outlined.Lock),
-        ForgotPasswordStep("Reset", Icons.Outlined.Person),
-        ForgotPasswordStep("Success", Icons.Filled.CheckCircle)
+        ForgotPasswordStep("Data Diri", Icons.Outlined.Badge),
+        ForgotPasswordStep("Verifikasi", Icons.Outlined.Lock),
+        ForgotPasswordStep("Atur Ulang", Icons.Outlined.Person),
+        ForgotPasswordStep("Selesai", Icons.Filled.CheckCircle)
     )
 
     val screenTitle = when (uiState.currentStep) {
-        1 -> "Forgot Password?"
-        2 -> "Verify Code"
-        3 -> "Set New Password"
-        4 -> "Success!"
-        else -> "Forgot Password?"
+        1 -> "Lupa Kata Sandi?"
+        2 -> "Verifikasi Kode"
+        3 -> "Buat Kata Sandi Baru"
+        4 -> "Berhasil!"
+        else -> "Lupa Kata Sandi?"
     }
 
     Surface(
@@ -58,7 +58,7 @@ fun ForgotPasswordScreen(
             ) {
                 Icon(
                     imageVector = Icons.Default.ArrowBack,
-                    contentDescription = "Back",
+                    contentDescription = "Kembali",
                     tint = MaterialTheme.colorScheme.onSurface
                 )
             }

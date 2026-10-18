@@ -40,7 +40,7 @@ fun FPassStepOneScreen(
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
         Text(
-            text = "Enter your email address and we'll send\nyou a verification code.",
+            text = "Masukkan alamat email Anda dan kami akan\nmengirimkan kode verifikasi.",
             color = Color.Black,
             fontSize = 14.sp,
             textAlign = TextAlign.Center,
@@ -49,7 +49,7 @@ fun FPassStepOneScreen(
 
         Column(modifier = Modifier.fillMaxWidth()) {
             Text(
-                text = "Email Address",
+                text = "Alamat Email",
                 fontWeight = FontWeight.Bold,
                 fontSize = 14.sp,
                 modifier = Modifier.padding(bottom = 8.dp)
@@ -106,7 +106,7 @@ fun FPassStepOneScreen(
                 )
             } else {
                 Text(
-                    text = "Send Code",
+                    text = "Kirim Kode",
                     fontWeight = FontWeight.Bold,
                     fontSize = 16.sp,
                     color = Color.White

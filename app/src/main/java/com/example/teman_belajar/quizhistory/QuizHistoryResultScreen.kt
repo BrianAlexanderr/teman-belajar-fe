@@ -45,7 +45,7 @@ fun QuizHistoryResultScreen(
                     .background(AppColors.Purple),
                 contentAlignment = Alignment.Center
             ) {
-                Icon(Icons.Outlined.EmojiEvents, contentDescription = "Trophy", tint = Color.White, modifier = Modifier.size(60.dp))
+                Icon(Icons.Outlined.EmojiEvents, contentDescription = "Trofi", tint = Color.White, modifier = Modifier.size(60.dp))
             }
 
             Spacer(modifier = Modifier.height(24.dp))

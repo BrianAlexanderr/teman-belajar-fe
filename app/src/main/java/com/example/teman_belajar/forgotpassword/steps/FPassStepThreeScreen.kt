@@ -29,19 +29,19 @@ fun FPassStepThreeScreen(
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
         Text(
-            text = "Create a strong password to secure your account.",
+            text = "Buat kata sandi yang kuat untuk mengamankan akun Anda.",
             color = Color.Black,
             fontSize = 14.sp,
             modifier = Modifier.padding(bottom = 32.dp)
         )
 
         Column(modifier = Modifier.fillMaxWidth()) {
-            Text("New Password", fontWeight = FontWeight.Bold, fontSize = 14.sp)
+            Text("Kata Sandi Baru", fontWeight = FontWeight.Bold, fontSize = 14.sp)
             Spacer(modifier = Modifier.height(8.dp))
             AppTextField(
                 value = uiState.newPassword,
                 onValueChange = { onEvent(ForgotPasswordEvent.NewPasswordChanged(it)) },
-                placeholder = "Enter New Password",
+                placeholder = "Masukkan Kata Sandi Baru",
                 leadingIcon = Icons.Outlined.Lock,
                 isPassword = true,
                 enabled = !uiState.isLoading
@@ -60,12 +60,12 @@ fun FPassStepThreeScreen(
         Spacer(modifier = Modifier.height(20.dp))
 
         Column(modifier = Modifier.fillMaxWidth()) {
-            Text("Confirm New Password", fontWeight = FontWeight.Bold, fontSize = 14.sp)
+            Text("Konfirmasi Kata Sandi Baru", fontWeight = FontWeight.Bold, fontSize = 14.sp)
             Spacer(modifier = Modifier.height(8.dp))
             AppTextField(
                 value = uiState.confirmPassword,
                 onValueChange = { onEvent(ForgotPasswordEvent.ConfirmPasswordChanged(it)) },
-                placeholder = "Confirm New Password",
+                placeholder = "Konfirmasi Kata Sandi Baru",
                 leadingIcon = Icons.Outlined.Lock,
                 isPassword = true,
                 enabled = !uiState.isLoading
@@ -102,7 +102,7 @@ fun FPassStepThreeScreen(
                     strokeWidth = 2.dp
                 )
             } else {
-                Text("Reset Password", fontWeight = FontWeight.Bold, fontSize = 16.sp)
+                Text("Atur Ulang Kata Sandi", fontWeight = FontWeight.Bold, fontSize = 16.sp)
             }
         }
     }

@@ -17,7 +17,7 @@ fun TermsCheckbox(
     checked: Boolean,
     onCheckedChange: (Boolean) -> Unit,
     modifier: Modifier = Modifier,
-    label: String = "Terms and Agreements",
+    label: String = "Syarat dan Ketentuan",
     error: String? = null,
 ) {
     Column(modifier = modifier) {
@@ -72,7 +72,7 @@ private fun TermsCheckboxPreview() {
             TermsCheckbox(
                 checked = false,
                 onCheckedChange = {},
-                error = "You must agree to the terms"
+                error = "Anda harus menyetujui syarat dan ketentuan"
             )
         }
     }

@@ -221,7 +221,7 @@ fun FolderDetailScreen(
                     }) {
                         Icon(
                             imageVector = if (uiState.isSummarySelectionMode) Icons.Default.Close else Icons.AutoMirrored.Filled.ArrowBack,
-                            contentDescription = "Back",
+                            contentDescription = "Kembali",
                             tint = MaterialTheme.colorScheme.onSurface
                         )
                     }
@@ -416,7 +416,7 @@ fun FolderDetailScreen(
                     Row(verticalAlignment = Alignment.CenterVertically) {
                         Icon(Icons.Outlined.AutoAwesome, null)
                         Spacer(Modifier.width(8.dp))
-                        Text("Buat Smart Summary (${uiState.selectedMaterialIds.size})", fontWeight = FontWeight.Bold, fontSize = 16.sp, color = Color.White)
+                        Text("Buat Ringkasan Pintar (${uiState.selectedMaterialIds.size})", fontWeight = FontWeight.Bold, fontSize = 16.sp, color = Color.White)
                     }
                 }
             }
@@ -440,7 +440,7 @@ fun FolderDetailScreen(
         Dialog(onDismissRequest = { onEvent(FolderDetailEvent.ClearError) }) {
             Card(shape = RoundedCornerShape(16.dp), colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)) {
                 Column(modifier = Modifier.padding(32.dp), horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.Center) {
-                    Icon(Icons.Default.ErrorOutline, contentDescription = "Error", tint = AppColors.Error, modifier = Modifier.size(48.dp))
+                    Icon(Icons.Default.ErrorOutline, contentDescription = "Kesalahan", tint = AppColors.Error, modifier = Modifier.size(48.dp))
                     Spacer(Modifier.height(24.dp))
                     Text("Gagal", fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onSurface)
                     Text(uiState.errorMessage ?: "", fontSize = 12.sp, textAlign = TextAlign.Center, color = MaterialTheme.colorScheme.onSurfaceVariant)
@@ -464,7 +464,7 @@ fun FolderDetailScreen(
             items = listOf(
                 ActionMenuItem(
                     title = "Kamera",
-                    subtitle = "Scan catatan",
+                    subtitle = "Pindai catatan",
                     icon = Icons.Outlined.CameraAlt,
                     onClick = {
                         onEvent(FolderDetailEvent.DismissAddFileMenu)
@@ -588,7 +588,7 @@ private fun CourseMaterialCard(
                 Box(modifier = Modifier.fillMaxWidth().align(Alignment.BottomStart).background(Brush.verticalGradient(listOf(Color.Transparent, Color.Black.copy(alpha = 0.7f)))).padding(8.dp)) {
                     Column {
                         Text(file.name, fontWeight = FontWeight.Bold, fontSize = 12.sp, color = Color.White, maxLines = 1, overflow = TextOverflow.Ellipsis)
-                        Text("IMG", fontSize = 10.sp, color = Color.White.copy(alpha = 0.8f))
+                        Text("GBR", fontSize = 10.sp, color = Color.White.copy(alpha = 0.8f))
                     }
                 }
             } else {

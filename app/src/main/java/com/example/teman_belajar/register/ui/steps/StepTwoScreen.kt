@@ -41,7 +41,7 @@ fun StepTwoScreen(
             .verticalScroll(rememberScrollState())
     ) {
         Text(
-            text = "One Step Forward",
+            text = "Satu Langkah Lagi",
             style = MaterialTheme.typography.headlineSmall.copy(
                 fontWeight = FontWeight.SemiBold,
                 color = RegistrationColors.TextPrimary
@@ -70,7 +70,7 @@ fun StepTwoScreen(
         AppTextField(
             value = uiState.password,
             onValueChange = { onEvent(RegistrationEvent.PasswordChanged(it)) },
-            placeholder = "Password",
+            placeholder = "Kata Sandi",
             leadingIcon = Icons.Outlined.Lock,
             error = uiState.passwordError,
             isPassword = true,
@@ -88,7 +88,7 @@ fun StepTwoScreen(
         AppTextField(
             value = uiState.confirmPassword,
             onValueChange = { onEvent(RegistrationEvent.ConfirmPasswordChanged(it)) },
-            placeholder = "Confirm Password",
+            placeholder = "Konfirmasi Kata Sandi",
             leadingIcon = Icons.Outlined.Lock,
             error = uiState.confirmPasswordError,
             isPassword = true,
@@ -113,7 +113,7 @@ fun StepTwoScreen(
         Spacer(modifier = Modifier.height(RegistrationSpacing.xl))
 
         PrimaryButton(
-            text = "Confirm",
+            text = "Konfirmasi",
             isLoading = uiState.isLoading,
             onClick = { onEvent(RegistrationEvent.ConfirmClicked) }
         )

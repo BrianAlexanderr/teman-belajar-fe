@@ -85,8 +85,8 @@ fun AppTextField(
                         Icon(
                             imageVector = if (passwordVisible) Icons.Outlined.Visibility
                             else Icons.Outlined.VisibilityOff,
-                            contentDescription = if (passwordVisible) "Hide password"
-                            else "Show password",
+                            contentDescription = if (passwordVisible) "Sembunyikan kata sandi"
+                            else "Tampilkan kata sandi",
                             tint = RegistrationColors.TextSecondary,
                             modifier = Modifier.size(20.dp)
                         )

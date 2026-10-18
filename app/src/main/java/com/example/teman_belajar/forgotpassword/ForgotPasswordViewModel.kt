@@ -128,8 +128,8 @@ class ForgotPasswordViewModel(
     private fun validateAndSendOtp() {
         val state = _uiState.value
         val emailError = when {
-            state.email.isBlank() -> "Email is required"
-            !Patterns.EMAIL_ADDRESS.matcher(state.email).matches() -> "Enter a valid email"
+            state.email.isBlank() -> "Email wajib diisi"
+            !Patterns.EMAIL_ADDRESS.matcher(state.email).matches() -> "Masukkan email yang valid"
             else -> null
         }
 
@@ -149,14 +149,14 @@ class ForgotPasswordViewModel(
                             val jsonObject = JSONObject(errorBody ?: "")
                             jsonObject.optString("message").takeIf { it.isNotEmpty() }
                                 ?: jsonObject.optString("msg").takeIf { it.isNotEmpty() }
-                                ?: "Failed to send code. Please try again."
+                                ?: "Gagal mengirim kode. Silakan coba lagi."
                         } catch (_: Exception) {
-                            "Failed to send code. Please try again."
+                            "Gagal mengirim kode. Silakan coba lagi."
                         }
                         _uiState.update { it.copy(isLoading = false, emailError = errorMessage) }
                     }
                 } catch (_: Exception) {
-                    _uiState.update { it.copy(isLoading = false, emailError = "Check your internet connection") }
+                    _uiState.update { it.copy(isLoading = false, emailError = "Periksa koneksi internet Anda") }
                 }
             }
         }
@@ -177,14 +177,14 @@ class ForgotPasswordViewModel(
                         val jsonObject = JSONObject(errorBody ?: "")
                         jsonObject.optString("message").takeIf { it.isNotEmpty() }
                             ?: jsonObject.optString("msg").takeIf { it.isNotEmpty() }
-                            ?: "Failed to resend code."
+                            ?: "Gagal mengirim ulang kode."
                     } catch (_: Exception) {
-                        "Failed to resend code."
+                        "Gagal mengirim ulang kode."
                     }
                     _uiState.update { it.copy(isResending = false, passwordError = errorMessage) }
                 }
             } catch (_: Exception) {
-                _uiState.update { it.copy(isResending = false, passwordError = "Check your internet connection") }
+                _uiState.update { it.copy(isResending = false, passwordError = "Periksa koneksi internet Anda") }
             }
         }
     }
@@ -209,14 +209,14 @@ class ForgotPasswordViewModel(
                         val jsonObject = JSONObject(errorBody ?: "")
                         jsonObject.optString("message").takeIf { it.isNotEmpty() }
                             ?: jsonObject.optString("msg").takeIf { it.isNotEmpty() }
-                            ?: "Invalid OTP code."
+                            ?: "Kode OTP tidak valid."
                     } catch (_: Exception) {
-                        "Invalid OTP code."
+                        "Kode OTP tidak valid."
                     }
                     _uiState.update { it.copy(isLoading = false, passwordError = errorMessage) }
                 }
             } catch (_: Exception) {
-                _uiState.update { it.copy(isLoading = false, passwordError = "Check your internet connection") }
+                _uiState.update { it.copy(isLoading = false, passwordError = "Periksa koneksi internet Anda") }
             }
         }
     }
@@ -225,15 +225,15 @@ class ForgotPasswordViewModel(
         val state = _uiState.value
 
         val passwordError = when {
-            state.newPassword.isBlank() -> "Password is required"
-            state.newPassword.length < 8 -> "At least 8 characters"
-            !state.newPassword.any { it.isDigit() } -> "Must contain a number"
+            state.newPassword.isBlank() -> "Kata sandi wajib diisi"
+            state.newPassword.length < 8 -> "Minimal 8 karakter"
+            !state.newPassword.any { it.isDigit() } -> "Harus mengandung angka"
             else -> null
         }
 
         val confirmPasswordError = when {
-            state.confirmPassword.isBlank() -> "Please confirm your password"
-            state.confirmPassword != state.newPassword -> "Passwords do not match"
+            state.confirmPassword.isBlank() -> "Harap konfirmasi kata sandi Anda"
+            state.confirmPassword != state.newPassword -> "Kata sandi tidak cocok"
             else -> null
         }
 
@@ -267,14 +267,14 @@ class ForgotPasswordViewModel(
                         val jsonObject = JSONObject(errorBody ?: "")
                         jsonObject.optString("message").takeIf { it.isNotEmpty() }
                             ?: jsonObject.optString("msg").takeIf { it.isNotEmpty() }
-                            ?: "Failed to reset password."
+                            ?: "Gagal mengatur ulang kata sandi."
                     } catch (_: Exception) {
-                        "Failed to reset password."
+                        "Gagal mengatur ulang kata sandi."
                     }
                     _uiState.update { it.copy(isLoading = false, passwordError = errorMessage) }
                 }
             } catch (_: Exception) {
-                _uiState.update { it.copy(isLoading = false, passwordError = "Network error. Please try again.") }
+                _uiState.update { it.copy(isLoading = false, passwordError = "Jaringan bermasalah. Silakan coba lagi.") }
             }
         }
     }

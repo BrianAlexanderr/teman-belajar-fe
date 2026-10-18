@@ -41,7 +41,7 @@ fun FPassStepTwoScreen(
     ) {
         Text(
             text = buildAnnotatedString {
-                append("Enter the 6-digit code sent to\n")
+                append("Masukkan 6 digit kode yang dikirim ke\n")
                 withStyle(style = SpanStyle(fontWeight = FontWeight.Bold, color = AppColors.TextPrimary)) {
                     append(uiState.email.ifEmpty { "john@example.com" })
                 }
@@ -148,7 +148,7 @@ fun FPassStepTwoScreen(
                     )
                     Spacer(modifier = Modifier.width(RegistrationSpacing.sm))
                     Text(
-                        text = "Sending...",
+                        text = "Mengirim...",
                         color = AppColors.Purple,
                         fontSize = 12.sp,
                         fontWeight = FontWeight.Bold
@@ -156,9 +156,9 @@ fun FPassStepTwoScreen(
                 } else {
                     Text(
                         text = if (isCountdownActive) {
-                            "Resend code in ${uiState.resendCountdown}s"
+                            "Kirim ulang kode dalam ${uiState.resendCountdown} detik"
                         } else {
-                            "Didn't Receive code? Resend Code"
+                            "Tidak menerima kode? Kirim Ulang"
                         },
                         color = if (isCountdownActive) AppColors.TextSecondary else AppColors.Purple,
                         fontSize = 12.sp,
@@ -190,7 +190,7 @@ fun FPassStepTwoScreen(
                 )
             } else {
                 Text(
-                    text = "Verify",
+                    text = "Verifikasi",
                     fontWeight = FontWeight.Bold,
                     fontSize = 16.sp,
                     color = AppColors.White

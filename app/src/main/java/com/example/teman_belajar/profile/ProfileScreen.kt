@@ -214,7 +214,7 @@ fun ProfileScreen(
                 ) {
                     Icon(
                         imageVector = Icons.Outlined.Person,
-                        contentDescription = "Avatar Placeholder",
+                        contentDescription = "Foto Profil",
                         tint = Color.White,
                         modifier = Modifier.size(64.dp)
                     )

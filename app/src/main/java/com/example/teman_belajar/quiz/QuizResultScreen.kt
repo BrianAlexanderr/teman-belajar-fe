@@ -50,7 +50,7 @@ fun QuizResultScreen(
             ) {
                 Icon(
                     imageVector = Icons.Outlined.EmojiEvents,
-                    contentDescription = "Trophy",
+                    contentDescription = "Trofi",
                     tint = Color.White,
                     modifier = Modifier.size(60.dp)
                 )

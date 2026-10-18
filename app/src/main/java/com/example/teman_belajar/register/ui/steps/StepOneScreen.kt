@@ -38,7 +38,7 @@ fun StepOneScreen(
             .verticalScroll(rememberScrollState())
     ) {
         Text(
-            text = "What can we call you?",
+            text = "Siapa nama panggilanmu?",
             style = MaterialTheme.typography.headlineSmall.copy(
                 fontWeight = FontWeight.SemiBold,
                 color = RegistrationColors.TextPrimary
@@ -50,7 +50,7 @@ fun StepOneScreen(
         AppTextField(
             value = uiState.firstName,
             onValueChange = { onEvent(RegistrationEvent.FirstNameChanged(it)) },
-            placeholder = "First Name",
+            placeholder = "Nama Depan",
             leadingIcon = Icons.Outlined.Person,
             error = uiState.firstNameError,
             keyboardOptions = KeyboardOptions(
@@ -67,7 +67,7 @@ fun StepOneScreen(
         AppTextField(
             value = uiState.lastName,
             onValueChange = { onEvent(RegistrationEvent.LastNameChanged(it)) },
-            placeholder = "Last Name",
+            placeholder = "Nama Belakang",
             leadingIcon = Icons.Outlined.Person,
             error = uiState.lastNameError,
             keyboardOptions = KeyboardOptions(
@@ -83,7 +83,7 @@ fun StepOneScreen(
         Spacer(modifier = Modifier.height(RegistrationSpacing.xl))
 
         PrimaryButton(
-            text = "Continue",
+            text = "Lanjutkan",
             onClick = { onEvent(RegistrationEvent.ContinueClicked) }
         )
 

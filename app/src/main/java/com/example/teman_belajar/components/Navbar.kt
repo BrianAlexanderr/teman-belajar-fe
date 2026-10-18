@@ -27,9 +27,9 @@ fun Navbar(
         tonalElevation = 0.dp
     ) {
         val navItems = listOf(
-            Triple("home", "Home", Icons.Default.Home),
-            Triple("quiz_history", "Quiz History", Icons.Outlined.Quiz),
-            Triple("profile", "Profile", Icons.Default.Person)
+            Triple("home", "Beranda", Icons.Default.Home),
+            Triple("quiz_history", "Riwayat Kuis", Icons.Outlined.Quiz),
+            Triple("profile", "Profil", Icons.Default.Person)
         )
 
         navItems.forEach { (route, label, icon) ->

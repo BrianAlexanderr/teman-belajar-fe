@@ -31,7 +31,7 @@ fun FPassStepFourScreen(onEvent: (ForgotPasswordEvent) -> Unit) {
         Spacer(modifier = Modifier.height(24.dp))
 
         Text(
-            text = "Password Reset Successful!",
+            text = "Kata Sandi Berhasil Diatur Ulang!",
             fontSize = 22.sp,
             fontWeight = FontWeight.Bold,
             color = Color.Black,
@@ -41,7 +41,7 @@ fun FPassStepFourScreen(onEvent: (ForgotPasswordEvent) -> Unit) {
         Spacer(modifier = Modifier.height(12.dp))
 
         Text(
-            text = "Your password has been updated. You can return to the login screen",
+            text = "Kata sandi Anda telah diperbarui. Silakan kembali ke halaman masuk",
             fontSize = 14.sp,
             color = Color.Gray,
             textAlign = TextAlign.Center,
@@ -58,7 +58,7 @@ fun FPassStepFourScreen(onEvent: (ForgotPasswordEvent) -> Unit) {
             shape = RoundedCornerShape(12.dp),
             colors = ButtonDefaults.buttonColors(containerColor = AppColors.Purple)
         ) {
-            Text("Back to Login", fontWeight = FontWeight.Bold, fontSize = 16.sp, color = Color.White)
+            Text("Kembali ke Halaman Masuk", fontWeight = FontWeight.Bold, fontSize = 16.sp, color = Color.White)
         }
     }
 }

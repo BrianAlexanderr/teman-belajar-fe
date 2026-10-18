@@ -30,9 +30,9 @@ fun RegistrationScreen(
     onEvent: (RegistrationEvent) -> Unit,
 ) {
     val steps = listOf(
-        StepItem("Details", Icons.Outlined.Person),
-        StepItem("Account", Icons.Outlined.AccountCircle),
-        StepItem("Done",    Icons.Default.CheckCircle)
+        StepItem("Data Diri", Icons.Outlined.Person),
+        StepItem("Akun", Icons.Outlined.AccountCircle),
+        StepItem("Selesai",    Icons.Default.CheckCircle)
     )
 
     Box(
@@ -58,7 +58,7 @@ fun RegistrationScreen(
                 ) {
                     Icon(
                         imageVector = Icons.Default.ArrowBack,
-                        contentDescription = "Back",
+                        contentDescription = "Kembali",
                         tint = RegistrationColors.TextPrimary
                     )
                 }
@@ -69,7 +69,7 @@ fun RegistrationScreen(
             }
 
             Text(
-                text = "Registration",
+                text = "Pendaftaran",
                 style = MaterialTheme.typography.headlineMedium.copy(
                     fontWeight = FontWeight.Bold,
                     color = RegistrationColors.TextPrimary

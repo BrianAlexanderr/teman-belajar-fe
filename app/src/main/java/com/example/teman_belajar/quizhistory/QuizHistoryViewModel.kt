@@ -35,7 +35,7 @@ data class QuizHistoryUiState(
     val isLoading: Boolean = false,
     val errorMessage: String? = null,
     val stats: QuizHistoryStat = QuizHistoryStat(),
-    val filterCategories: List<String> = listOf("Semua", "Lulus", "Perlu Diperhatikan", "Draft"),
+    val filterCategories: List<String> = listOf("Semua", "Lulus", "Perlu Diperhatikan", "Draf"),
     val selectedFilter: String = "Semua",
     val historyItems: List<QuizHistoryItem> = emptyList(),
     val selectedItem: QuizHistoryItem? = null
