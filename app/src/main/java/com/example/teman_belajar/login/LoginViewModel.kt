@@ -48,8 +48,8 @@ class LoginViewModel(application: Application) : AndroidViewModel(application) {
 
     private fun validateAndLogin() {
         val state = _uiState.value
-        val emailError = if (state.email.isBlank()) "Email is required" else null
-        val passwordError = if (state.password.isBlank()) "Password is required" else null
+        val emailError = if (state.email.isBlank()) "Email wajib diisi" else null
+        val passwordError = if (state.password.isBlank()) "Kata sandi wajib diisi" else null
 
         if (emailError != null || passwordError != null) {
             _uiState.update { it.copy(emailError = emailError, passwordError = passwordError) }
@@ -76,8 +76,8 @@ class LoginViewModel(application: Application) : AndroidViewModel(application) {
                     val token = body?.token
                     val refreshToken = body?.refreshToken
                     val userName = body?.userName
-//                    val userId = body?.id
 
+                    // 1. Update singleton token manager segera agar request berikutnya menggunakan token baru
                     TokenManager.initializeTokens(token, refreshToken)
 
                     _uiState.update {
@@ -88,31 +88,31 @@ class LoginViewModel(application: Application) : AndroidViewModel(application) {
                         )
                     }
 
-                    viewModelScope.launch {
-                        // Memperbaiki urutan parameter menggunakan named arguments
-                        userPreferences.setLoggedIn(
-                            isLoggedIn = true,
-//                            userId = userId,
-                            userName = userName,
-                            token = token,
-                            refreshToken = refreshToken
-                        )
-                    }
+                    // 2. Simpan ke DataStore dan TUNGGU (suspend) sampai proses tulis selesai
+                    // Jangan gunakan launch baru agar eksekusi di bawahnya menunggu proses ini tuntas
+                    userPreferences.setLoggedIn(
+                        isLoggedIn = true,
+                        userName = userName,
+                        token = token,
+                        refreshToken = refreshToken
+                    )
 
+                    // 3. Navigasi dipanggil SETELAH data dipastikan tersimpan
                     onLoginSuccess?.invoke()
+
                 } else {
                     val errorJson = response.errorBody()?.string()
                     Log.e("LoginError", "Isi errorJson: $errorJson")
                     val serverError = try {
                         JSONObject(errorJson ?: "{}").getString("msg")
                     } catch (_: Exception) {
-                        "Invalid email or password"
+                        "Email atau kata sandi salah"
                     }
                     _uiState.update { it.copy(isLoading = false, errorMessage = serverError) }
                 }
             } catch (e: Exception) {
                 Log.e("LoginViewModel", "Login error", e)
-                _uiState.update { it.copy(isLoading = false, errorMessage = "Connection failed. Please check your internet.") }
+                _uiState.update { it.copy(isLoading = false, errorMessage = "Koneksi gagal. Periksa koneksi internet Anda.") }
             }
         }
     }

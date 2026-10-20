@@ -73,7 +73,7 @@ fun SuccessCheckmark(
         ) {
             Icon(
                 imageVector = Icons.Default.Check,
-                contentDescription = "Success",
+                contentDescription = "Berhasil",
                 tint = RegistrationColors.Success,
                 modifier = Modifier.size(iconSize)
             )

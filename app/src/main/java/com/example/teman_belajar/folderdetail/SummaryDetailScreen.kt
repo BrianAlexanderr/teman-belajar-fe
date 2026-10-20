@@ -46,7 +46,7 @@ fun SummaryDetailScreen(
                 },
                 navigationIcon = {
                     IconButton(onClick = { onEvent(SummaryDetailEvent.NavigateBack) }) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back", tint = MaterialTheme.colorScheme.onSurface)
+                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Kembali", tint = MaterialTheme.colorScheme.onSurface)
                     }
                 },
                 colors = TopAppBarDefaults.topAppBarColors(containerColor = MaterialTheme.colorScheme.surface)
@@ -71,7 +71,7 @@ fun SummaryDetailScreen(
                     ) {
                         Icon(
                             imageVector = Icons.Default.Cancel,
-                            contentDescription = "Error",
+                            contentDescription = "Kesalahan",
                             tint = Color.Red,
                             modifier = Modifier.size(64.dp)
                         )
@@ -139,7 +139,7 @@ fun SummaryDetailScreen(
                 )
                 Spacer(modifier = Modifier.width(8.dp))
                 Text(
-                    text = "AI Hasil Scan",
+                    text = "Hasil Pindai AI",
                     color = if (isDark) MaterialTheme.colorScheme.onSurface else AppColors.Purple,
                     fontSize = 12.sp,
                     fontWeight = FontWeight.Medium
@@ -214,7 +214,7 @@ fun SummaryDetailScreen(
                         )
                         Spacer(modifier = Modifier.height(4.dp))
                         Text(
-                            text = "AI siap membuat ${uiState.quizQuestionCount} pertanyaan kuis.",
+                            text = "AI siap membuat 10 pertanyaan kuis.",
                             fontSize = 12.sp,
                             color = if (isDark) MaterialTheme.colorScheme.onSurfaceVariant else Color(0xFF6D28D9)
                         )

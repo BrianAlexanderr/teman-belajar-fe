@@ -36,6 +36,7 @@ import com.example.teman_belajar.quiz.QuizListScreen
 import com.example.teman_belajar.quiz.QuizListViewModel
 import com.example.teman_belajar.profile.ProfileScreen
 import com.example.teman_belajar.profile.ProfileViewModel
+import com.example.teman_belajar.profile.ProfileEvent
 
 class MainActivity : ComponentActivity() {
 
@@ -222,11 +223,12 @@ class MainActivity : ComponentActivity() {
                         }
 
                         composable("profile") {
-                            val uiState by profileViewModel.uiState.collectAsState()
+                            // Panggil refresh data setiap kali halaman Profile dibuka
+                            LaunchedEffect(Unit) {
+                                profileViewModel.onEvent(ProfileEvent.LoadProfile)
+                            }
 
-//                            profileViewModel.onNavigateBack = {
-//                                navController.popBackStack()
-//                            }
+                            val uiState by profileViewModel.uiState.collectAsState()
 
                             profileViewModel.onLogout = {
                                 navController.navigate("login") {

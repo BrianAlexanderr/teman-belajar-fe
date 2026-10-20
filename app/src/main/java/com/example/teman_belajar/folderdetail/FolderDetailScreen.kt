@@ -159,6 +159,20 @@ fun FolderDetailScreen(
         }
     }
 
+    LaunchedEffect(uiState.errorMessage) {
+        uiState.errorMessage?.let { errorMsg ->
+            Toast.makeText(context, errorMsg, Toast.LENGTH_SHORT).show()
+            onEvent(FolderDetailEvent.ClearError)
+        }
+    }
+
+    LaunchedEffect(uiState.successMessage) {
+        uiState.successMessage?.let { successMsg ->
+            Toast.makeText(context, successMsg, Toast.LENGTH_SHORT).show()
+            onEvent(FolderDetailEvent.ClearSuccessMessage)
+        }
+    }
+
     val takePictureLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.TakePicturePreview()
     ) { bitmap ->
@@ -221,7 +235,7 @@ fun FolderDetailScreen(
                     }) {
                         Icon(
                             imageVector = if (uiState.isSummarySelectionMode) Icons.Default.Close else Icons.AutoMirrored.Filled.ArrowBack,
-                            contentDescription = "Back",
+                            contentDescription = "Kembali",
                             tint = MaterialTheme.colorScheme.onSurface
                         )
                     }
@@ -416,7 +430,7 @@ fun FolderDetailScreen(
                     Row(verticalAlignment = Alignment.CenterVertically) {
                         Icon(Icons.Outlined.AutoAwesome, null)
                         Spacer(Modifier.width(8.dp))
-                        Text("Buat Smart Summary (${uiState.selectedMaterialIds.size})", fontWeight = FontWeight.Bold, fontSize = 16.sp, color = Color.White)
+                        Text("Buat Ringkasan Pintar (${uiState.selectedMaterialIds.size})", fontWeight = FontWeight.Bold, fontSize = 16.sp, color = Color.White)
                     }
                 }
             }
@@ -436,17 +450,17 @@ fun FolderDetailScreen(
         }
     }
 
-    if (uiState.errorMessage != null) {
-        Dialog(onDismissRequest = { onEvent(FolderDetailEvent.ClearError) }) {
+    if (uiState.generateErrorMessage != null) {
+        Dialog(onDismissRequest = { onEvent(FolderDetailEvent.ClearGenerateError) }) {
             Card(shape = RoundedCornerShape(16.dp), colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)) {
                 Column(modifier = Modifier.padding(32.dp), horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.Center) {
-                    Icon(Icons.Default.ErrorOutline, contentDescription = "Error", tint = AppColors.Error, modifier = Modifier.size(48.dp))
+                    Icon(Icons.Default.ErrorOutline, contentDescription = "Kesalahan", tint = AppColors.Error, modifier = Modifier.size(48.dp))
                     Spacer(Modifier.height(24.dp))
                     Text("Gagal", fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onSurface)
-                    Text(uiState.errorMessage ?: "", fontSize = 12.sp, textAlign = TextAlign.Center, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    Text(uiState.generateErrorMessage ?: "", fontSize = 12.sp, textAlign = TextAlign.Center, color = MaterialTheme.colorScheme.onSurfaceVariant)
                     Spacer(Modifier.height(24.dp))
                     Button(
-                        onClick = { onEvent(FolderDetailEvent.ClearError) },
+                        onClick = { onEvent(FolderDetailEvent.ClearGenerateError) },
                         modifier = Modifier.fillMaxWidth(),
                         shape = RoundedCornerShape(12.dp),
                         colors = ButtonDefaults.buttonColors(containerColor = AppColors.Purple)
@@ -464,7 +478,7 @@ fun FolderDetailScreen(
             items = listOf(
                 ActionMenuItem(
                     title = "Kamera",
-                    subtitle = "Scan catatan",
+                    subtitle = "Pindai catatan",
                     icon = Icons.Outlined.CameraAlt,
                     onClick = {
                         onEvent(FolderDetailEvent.DismissAddFileMenu)
@@ -588,12 +602,16 @@ private fun CourseMaterialCard(
                 Box(modifier = Modifier.fillMaxWidth().align(Alignment.BottomStart).background(Brush.verticalGradient(listOf(Color.Transparent, Color.Black.copy(alpha = 0.7f)))).padding(8.dp)) {
                     Column {
                         Text(file.name, fontWeight = FontWeight.Bold, fontSize = 12.sp, color = Color.White, maxLines = 1, overflow = TextOverflow.Ellipsis)
-                        Text("IMG", fontSize = 10.sp, color = Color.White.copy(alpha = 0.8f))
+                        Text("GBR", fontSize = 10.sp, color = Color.White.copy(alpha = 0.8f))
                     }
                 }
             } else {
                 Column(modifier = Modifier.padding(12.dp).fillMaxWidth()) {
-                    Image(painter = painterResource(if (file.mimeType.contains("pdf")) R.drawable.file else R.drawable.doc), contentDescription = null, modifier = Modifier.size(32.dp))
+                    Image(painter = painterResource(when {
+                        file.mimeType.contains("pdf") -> R.drawable.file
+                        file.mimeType.contains("powerpoint") || file.mimeType.contains("presentation") -> R.drawable.pptx
+                        else -> R.drawable.doc
+                    }), contentDescription = null, modifier = Modifier.size(32.dp))
                     Spacer(modifier = Modifier.height(12.dp))
                     Text(file.name, fontWeight = FontWeight.Bold, fontSize = 13.sp, color = MaterialTheme.colorScheme.onSurface, maxLines = 1, overflow = TextOverflow.Ellipsis)
                 }

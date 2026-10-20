@@ -46,7 +46,7 @@ fun QuizHistoryScreen(
     val filteredItems = when (uiState.selectedFilter) {
         "Lulus" -> uiState.historyItems.filter { it.score != null && it.score >= 70 }
         "Perlu Diperhatikan" -> uiState.historyItems.filter { it.score != null && it.score < 70 }
-        "Draft" -> uiState.historyItems.filter { it.score == null }
+        "Draf" -> uiState.historyItems.filter { it.score == null }
         else -> uiState.historyItems
     }
 
@@ -56,7 +56,7 @@ fun QuizHistoryScreen(
                 title = { Text("Riwayat Kuis", fontWeight = FontWeight.Bold, fontSize = 20.sp, color = MaterialTheme.colorScheme.onSurface) },
                 navigationIcon = {
                     IconButton(onClick = { onEvent(QuizHistoryEvent.NavigateBack) }) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back", tint = MaterialTheme.colorScheme.onSurface)
+                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Kembali", tint = MaterialTheme.colorScheme.onSurface)
                     }
                 },
                 colors = TopAppBarDefaults.topAppBarColors(containerColor = MaterialTheme.colorScheme.surface)
@@ -262,7 +262,7 @@ fun QuizHistoryCard(
                     Box(
                         modifier = Modifier.clip(RoundedCornerShape(12.dp)).background(Color(0xFFFFEDD5)).padding(horizontal = 10.dp, vertical = 4.dp)
                     ) {
-                        Text(text = "Draft", color = Color(0xFFEA580C), fontWeight = FontWeight.Bold, fontSize = 12.sp)
+                        Text(text = "Draf", color = Color(0xFFEA580C), fontWeight = FontWeight.Bold, fontSize = 12.sp)
                     }
                 }
             }
@@ -301,7 +301,7 @@ fun QuizHistoryCard(
                     shape = RoundedCornerShape(8.dp),
                     colors = ButtonDefaults.buttonColors(containerColor = AppColors.Purple)
                 ) {
-                    Text(text = "Lanjutkan Quiz", color = Color.White, fontWeight = FontWeight.Bold)
+                    Text(text = "Lanjutkan Kuis", color = Color.White, fontWeight = FontWeight.Bold)
                 }
             }
         }

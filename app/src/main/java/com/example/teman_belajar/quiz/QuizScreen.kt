@@ -142,11 +142,11 @@ fun QuizScreen(
                             .background(MaterialTheme.colorScheme.surfaceVariant, CircleShape)
                             .size(40.dp)
                     ) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back", tint = MaterialTheme.colorScheme.onSurface)
+                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Kembali", tint = MaterialTheme.colorScheme.onSurface)
                     }
 
                     Text(
-                        text = "Question ${currentIndex + 1}/$totalQuestions",
+                        text = "Pertanyaan ${currentIndex + 1}/$totalQuestions",
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                         fontSize = 14.sp,
                         fontWeight = FontWeight.Medium

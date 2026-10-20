@@ -33,7 +33,7 @@ fun StepThreeScreen(
         Spacer(modifier = Modifier.height(RegistrationSpacing.xl))
 
         Text(
-            text = "All Done !!!",
+            text = "Semua Selesai !!!",
             style = MaterialTheme.typography.headlineSmall.copy(
                 fontWeight = FontWeight.Bold,
                 color = RegistrationColors.TextPrimary
@@ -44,7 +44,7 @@ fun StepThreeScreen(
         Spacer(modifier = Modifier.height(RegistrationSpacing.sm))
 
         Text(
-            text = "Thank You For Registering",
+            text = "Terima Kasih Telah Mendaftar",
             style = MaterialTheme.typography.bodyLarge.copy(
                 color = RegistrationColors.TextSecondary
             ),
@@ -54,7 +54,7 @@ fun StepThreeScreen(
         Spacer(modifier = Modifier.weight(1f))
 
         PrimaryButton(
-            text = "Login",
+            text = "Masuk",
             onClick = { onEvent(RegistrationEvent.LoginClicked) }
         )
 

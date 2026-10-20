@@ -73,7 +73,7 @@ fun LoginScreen(
             )
 
             Text(
-                text = "WELCOME",
+                text = "SELAMAT DATANG",
                 color = AppColors.Purple,
                 fontSize = 28.sp,
                 fontWeight = FontWeight.ExtraBold,
@@ -81,7 +81,7 @@ fun LoginScreen(
             )
 
             Text(
-                text = "Sign in to your account to continue",
+                text = "Masuk ke akun Anda untuk melanjutkan",
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                 fontSize = 14.sp,
                 modifier = Modifier.offset(y = (-50).dp)
@@ -109,7 +109,7 @@ fun LoginScreen(
 
             Column(modifier = Modifier.fillMaxWidth()) {
                 Text(
-                    text = "Email Address",
+                    text = "Alamat Email",
                     fontWeight = FontWeight.Bold,
                     fontSize = 14.sp,
                     color = MaterialTheme.colorScheme.onSurface,
@@ -134,7 +134,7 @@ fun LoginScreen(
                 Spacer(modifier = Modifier.height(16.dp))
 
                 Text(
-                    text = "Password",
+                    text = "Kata Sandi",
                     fontWeight = FontWeight.Bold,
                     fontSize = 14.sp,
                     color = MaterialTheme.colorScheme.onSurface,
@@ -161,7 +161,7 @@ fun LoginScreen(
                 )
 
                 Text(
-                    text = "Forgot Password?",
+                    text = "Lupa Kata Sandi?",
                     color = AppColors.Purple,
                     fontSize = 12.sp,
                     fontWeight = FontWeight.Bold,
@@ -192,7 +192,7 @@ fun LoginScreen(
                         strokeWidth = 3.dp
                     )
                 } else {
-                    Text("Sign In", fontWeight = FontWeight.Bold, fontSize = 16.sp, color = Color.White)
+                    Text("Masuk", fontWeight = FontWeight.Bold, fontSize = 16.sp, color = Color.White)
                 }
             }
 
@@ -204,7 +204,7 @@ fun LoginScreen(
             ) {
                 HorizontalDivider(modifier = Modifier.weight(1f), color = MaterialTheme.colorScheme.outlineVariant)
                 Text(
-                    text = "or",
+                    text = "atau",
                     modifier = Modifier.padding(horizontal = 16.dp),
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
@@ -222,7 +222,7 @@ fun LoginScreen(
                 shape = RoundedCornerShape(12.dp),
                 border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant)
             ) {
-                Text("Create New Account", color = MaterialTheme.colorScheme.onSurface, fontWeight = FontWeight.Bold)
+                Text("Buat Akun Baru", color = MaterialTheme.colorScheme.onSurface, fontWeight = FontWeight.Bold)
             }
 
             Spacer(modifier = Modifier.height(32.dp))

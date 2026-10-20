@@ -54,7 +54,7 @@ fun SplashScreen(
             ) {
                 Icon(
                     imageVector = Icons.AutoMirrored.Filled.ArrowBack,
-                    contentDescription = "Back",
+                    contentDescription = "Kembali",
                     tint = if (pagerState.currentPage > 0) Color.Black else Color.Transparent
                 )
             }
@@ -68,7 +68,7 @@ fun SplashScreen(
                 }
             ) {
                 Text(
-                    text = "Skip",
+                    text = "Lewati",
                     color = Color.Gray,
                     fontWeight = FontWeight.Bold,
                     fontSize = 16.sp
@@ -160,7 +160,7 @@ fun SplashScreen(
                 colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF823CFF))
             ) {
                 Text(
-                    text = if (pagerState.currentPage == onboardingPagesList.size - 1) "Get Started" else "Next",
+                    text = if (pagerState.currentPage == onboardingPagesList.size - 1) "Mulai Sekarang" else "Lanjut",
                     fontSize = 16.sp,
                     fontWeight = FontWeight.Bold,
                     color = Color.White

@@ -63,13 +63,13 @@ class RegistrationViewModel(
     private fun validateStep1() {
         val state = _uiState.value
         val firstNameError = when {
-            state.firstName.isBlank()    -> "First name is required"
-            state.firstName.length < 2   -> "At least 2 characters required"
+            state.firstName.isBlank()    -> "Nama depan wajib diisi"
+            state.firstName.length < 2   -> "Minimal 2 karakter"
             else                         -> null
         }
         val lastNameError = when {
-            state.lastName.isBlank()     -> "Last name is required"
-            state.lastName.length < 2    -> "At least 2 characters required"
+            state.lastName.isBlank()     -> "Nama belakang wajib diisi"
+            state.lastName.length < 2    -> "Minimal 2 karakter"
             else                         -> null
         }
         if (firstNameError != null || lastNameError != null) {
@@ -82,22 +82,22 @@ class RegistrationViewModel(
     private fun validateStep2() {
         val state = _uiState.value
         val emailError = when {
-            state.email.isBlank() -> "Email is required"
-            !Patterns.EMAIL_ADDRESS.matcher(state.email).matches() -> "Enter a valid email"
+            state.email.isBlank() -> "Email wajib diisi"
+            !Patterns.EMAIL_ADDRESS.matcher(state.email).matches() -> "Masukkan email yang valid"
             else -> null
         }
         val passwordError = when {
-            state.password.isBlank()       -> "Password is required"
-            state.password.length < 8      -> "At least 8 characters"
-            !state.password.any { it.isDigit() } -> "Must contain a number"
+            state.password.isBlank()       -> "Kata sandi wajib diisi"
+            state.password.length < 8      -> "Minimal 8 karakter"
+            !state.password.any { it.isDigit() } -> "Harus mengandung angka"
             else                           -> null
         }
         val confirmPasswordError = when {
-            state.confirmPassword.isBlank()            -> "Please confirm your password"
-            state.confirmPassword != state.password    -> "Passwords do not match"
+            state.confirmPassword.isBlank()            -> "Harap konfirmasi kata sandi Anda"
+            state.confirmPassword != state.password    -> "Kata sandi tidak cocok"
             else                                       -> null
         }
-        val termsError = if (!state.agreedToTerms) "You must agree to the terms" else null
+        val termsError = if (!state.agreedToTerms) "Anda harus menyetujui syarat dan ketentuan" else null
 
         if (emailError != null || passwordError != null || confirmPasswordError != null || termsError != null) {
             _uiState.update {
@@ -140,9 +140,9 @@ class RegistrationViewModel(
                         jsonObject.optString("message").takeIf { it.isNotBlank() }
                             ?: jsonObject.optString("msg").takeIf { it.isNotBlank() }
                             ?: jsonObject.optString("error").takeIf { it.isNotBlank() }
-                            ?: "Registration failed"
+                            ?: "Pendaftaran gagal"
                     } catch (_: Exception) {
-                        "Registration failed"
+                        "Pendaftaran gagal"
                     }
 
                     _uiState.update {
@@ -151,7 +151,7 @@ class RegistrationViewModel(
                 }
             } catch (e: Exception) {
                 _uiState.update {
-                    it.copy(isLoading = false, termsError = "Connection failed: ${e.localizedMessage}")
+                    it.copy(isLoading = false, termsError = "Koneksi gagal: ${e.localizedMessage}")
                 }
             }
         }

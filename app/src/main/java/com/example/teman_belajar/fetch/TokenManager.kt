@@ -8,4 +8,9 @@ object TokenManager {
         accessToken = access
         refreshToken = refresh
     }
+
+    fun clearTokens() {
+        accessToken = null
+        refreshToken = null
+    }
 }

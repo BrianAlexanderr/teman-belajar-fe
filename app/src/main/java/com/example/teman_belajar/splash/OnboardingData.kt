@@ -15,23 +15,23 @@ data class OnboardingPage(
 
 val onboardingPagesList = listOf(
     OnboardingPage(
-        title = "Scan Study Material",
-        description = "Capture your notes, textbooks, and handouts with your camera. Our OCR technology extracts text instantly",
+        title = "Pindai Materi Belajar",
+        description = "Foto catatan, buku pelajaran, dan modul dengan kamera. Teknologi OCR kami mengekstrak teks secara instan",
         icon = Icons.Default.CameraAlt
     ),
     OnboardingPage(
-        title = "AI Summarization",
-        description = "Advanced AI analyzes your materials and creates clear, concise summaries highlighting key concepts.",
+        title = "Ringkasan AI",
+        description = "AI canggih menganalisis materimu dan membuat ringkasan yang jelas dan padat dengan menyoroti konsep-konsep penting.",
         icon = Icons.Default.AutoAwesome
     ),
     OnboardingPage(
-        title = "Interactive Quizzes",
-        description = "Test your knowledge with AI-generated quizzes designed for active recall and better retention.",
+        title = "Kuis Interaktif",
+        description = "Uji pemahamanmu dengan kuis buatan AI yang dirancang untuk melatih daya ingat secara aktif.",
         icon = Icons.Default.Quiz
     ),
     OnboardingPage(
-        title = "Organized Material",
-        description = "Keep all your subjects and materials organized in folders for easy access anytime.",
+        title = "Materi Terorganisir",
+        description = "Simpan semua mata pelajaran dan materimu dalam folder agar mudah diakses kapan saja.",
         icon = Icons.Default.Folder
     )
 )

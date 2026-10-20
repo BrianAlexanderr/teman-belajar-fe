@@ -102,7 +102,7 @@ fun HomeScreen(
                 shape = CircleShape,
                 modifier = Modifier.padding(bottom = 16.dp)
             ) {
-                Icon(Icons.Default.Add, contentDescription = "Add Folder")
+                Icon(Icons.Default.Add, contentDescription = "Tambah Folder")
             }
         },
         containerColor = MaterialTheme.colorScheme.background // Gunakan background tema
@@ -150,7 +150,7 @@ fun HomeScreen(
                             horizontalArrangement = Arrangement.spacedBy(16.dp)
                         ) {
                             ActionCard(
-                                title = "Quiz AI",
+                                title = "Kuis AI",
                                 icon = Icons.Outlined.Quiz,
                                 modifier = Modifier.weight(1f),
                                 onClick = { onEvent(HomeEvent.QuizAiClicked) }
@@ -444,7 +444,7 @@ fun FolderCard(
             ) {
                 Icon(
                     Icons.Default.MoreVert,
-                    contentDescription = "Options",
+                    contentDescription = "Opsi",
                     tint = MaterialTheme.colorScheme.onSurfaceVariant
                 )
             }

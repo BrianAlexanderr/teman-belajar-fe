@@ -79,6 +79,8 @@ data class FolderDetailUiState(
     val isGeneratingSummary: Boolean = false,
     val errorMessage: String? = null,
     val successMessage: String? = null,
+    // Shown as a popup (not a toast) so generate quiz/summary failures from BE are not missed
+    val generateErrorMessage: String? = null,
 
     val isAddFileMenuVisible: Boolean = false,
     val fileCounter: Int = 1,
@@ -141,6 +143,7 @@ sealed class FolderDetailEvent {
 
     object ClearError : FolderDetailEvent()
     object ClearSuccessMessage : FolderDetailEvent()
+    object ClearGenerateError : FolderDetailEvent()
     data class FileClicked(val file: DummyFile) : FolderDetailEvent()
     data class DownloadFileClicked(val file: DummyFile) : FolderDetailEvent()
 }
@@ -293,12 +296,6 @@ class FolderDetailViewModel(application: Application) : AndroidViewModel(applica
                     val extractedText = performLocalOcr(contentUri)
 
                     if (extractedText.isBlank()) {
-                        Toast.makeText(
-                            getApplication<Application>().applicationContext,
-                            "No text is extracted",
-                            Toast.LENGTH_SHORT
-                        ).show()
-
                         _uiState.update { it.copy(isLoading = false, errorMessage = "Tidak ada teks yang dapat dibaca dari gambar ini") }
                         return@launch
                     }
@@ -320,7 +317,7 @@ class FolderDetailViewModel(application: Application) : AndroidViewModel(applica
                             isLoading = false
                         ) }
                     } else {
-                        _uiState.update { it.copy(isLoading = false, errorMessage = "Gagal memproses teks gambar ke server") }
+                        _uiState.update { it.copy(isLoading = false, errorMessage = parseErrorMessage(response.errorBody()?.string())) }
                     }
 
                 }
@@ -363,10 +360,10 @@ class FolderDetailViewModel(application: Application) : AndroidViewModel(applica
                             }
                         }
                     }
-                    _uiState.update { it.copy(isLoading = false, errorMessage = "Gagal upload dokumen") }
+                    _uiState.update { it.copy(isLoading = false, errorMessage = "Gagal mengunggah dokumen") }
                 }
             } catch (e: Exception) {
-                _uiState.update { it.copy(isLoading = false, errorMessage = e.message) }
+                _uiState.update { it.copy(isLoading = false, errorMessage = "Gagal mengunggah: ${e.message}") }
             }
         }
     }
@@ -413,19 +410,19 @@ class FolderDetailViewModel(application: Application) : AndroidViewModel(applica
 
         viewModelScope.launch {
             try {
-                val responseIsSuccessful = if (file.isSmartSummary) {
-                    apiService.deleteSummary(file.id).isSuccessful
+                val response = if (file.isSmartSummary) {
+                    apiService.deleteSummary(file.id)
                 } else {
-                    apiService.deleteMaterial(file.id).isSuccessful
+                    apiService.deleteMaterial(file.id)
                 }
 
-                if (responseIsSuccessful) {
-                    _uiState.update { it.copy(successMessage = "Terhapus!") }
+                if (response.isSuccessful) {
+                    _uiState.update { it.copy(successMessage = "${file.name} berhasil dihapus!") }
                 } else {
-                    _uiState.update { it.copy(allFiles = oldState.allFiles, materials = oldState.materials, smartSummaries = oldState.smartSummaries) }
+                    _uiState.update { it.copy(allFiles = oldState.allFiles, materials = oldState.materials, smartSummaries = oldState.smartSummaries, errorMessage = parseErrorMessage(response.errorBody()?.string())) }
                 }
             } catch (e: Exception) {
-                _uiState.update { it.copy(allFiles = oldState.allFiles, materials = oldState.materials, smartSummaries = oldState.smartSummaries) }
+                _uiState.update { it.copy(allFiles = oldState.allFiles, materials = oldState.materials, smartSummaries = oldState.smartSummaries, errorMessage = "Gagal menghapus: jaringan bermasalah") }
             }
         }
     }
@@ -450,13 +447,14 @@ class FolderDetailViewModel(application: Application) : AndroidViewModel(applica
 
         viewModelScope.launch {
             try {
-                if (apiService.renameMaterial(RenameMaterialRequest(file.id, newName)).isSuccessful) {
-                    _uiState.update { it.copy(successMessage = "Nama diubah!") }
+                val response = apiService.renameMaterial(RenameMaterialRequest(file.id, newName))
+                if (response.isSuccessful) {
+                    _uiState.update { it.copy(successMessage = "Nama materi berhasil diubah!") }
                 } else {
-                    _uiState.update { it.copy(allFiles = oldState.allFiles, materials = oldState.materials, smartSummaries = oldState.smartSummaries) }
+                    _uiState.update { it.copy(allFiles = oldState.allFiles, materials = oldState.materials, smartSummaries = oldState.smartSummaries, errorMessage = parseErrorMessage(response.errorBody()?.string())) }
                 }
             } catch (e: Exception) {
-                _uiState.update { it.copy(allFiles = oldState.allFiles, materials = oldState.materials, smartSummaries = oldState.smartSummaries) }
+                _uiState.update { it.copy(allFiles = oldState.allFiles, materials = oldState.materials, smartSummaries = oldState.smartSummaries, errorMessage = "Gagal mengubah nama: jaringan bermasalah") }
             }
         }
     }
@@ -470,9 +468,9 @@ class FolderDetailViewModel(application: Application) : AndroidViewModel(applica
             try {
                 val response = apiService.renameFolder(RenameFolderRequest(UUID.fromString(folderId), newName))
                 if (response.isSuccessful) {
-                    _uiState.update { it.copy(folderName = newName, isRenameFolderDialogVisible = false, successMessage = "Folder diubah!") }
+                    _uiState.update { it.copy(folderName = newName, isRenameFolderDialogVisible = false, successMessage = "Nama folder berhasil diubah!") }
                 } else {
-                    _uiState.update { it.copy(errorMessage = "Gagal mengubah folder") }
+                    _uiState.update { it.copy(errorMessage = parseErrorMessage(response.errorBody()?.string())) }
                 }
             } catch (e: Exception) {
                 _uiState.update { it.copy(errorMessage = e.message) }
@@ -488,9 +486,15 @@ class FolderDetailViewModel(application: Application) : AndroidViewModel(applica
             try {
                 val response = apiService.deleteFolder(UUID.fromString(folderId))
                 if (response.isSuccessful) {
+                    // Screen is popped right away, so toast directly instead of via uiState
+                    Toast.makeText(
+                        getApplication<Application>().applicationContext,
+                        "Folder berhasil dihapus!",
+                        Toast.LENGTH_SHORT
+                    ).show()
                     onNavigateBack?.invoke()
                 } else {
-                    _uiState.update { it.copy(errorMessage = "Gagal menghapus folder") }
+                    _uiState.update { it.copy(errorMessage = parseErrorMessage(response.errorBody()?.string())) }
                 }
             } catch (e: Exception) {
                 _uiState.update { it.copy(errorMessage = e.message) }
@@ -574,10 +578,10 @@ class FolderDetailViewModel(application: Application) : AndroidViewModel(applica
                         if (res.isSuccessful) {
                             _uiState.update { it.copy(successMessage = "Kuis sedang dibuat!") }
                         } else {
-                            _uiState.update { it.copy(errorMessage = parseErrorMessage(res.errorBody()?.string())) }
+                            _uiState.update { it.copy(generateErrorMessage = parseErrorMessage(res.errorBody()?.string())) }
                         }
                     } catch (e: Exception) {
-                        _uiState.update { it.copy(errorMessage = "Jaringan bermasalah") }
+                        _uiState.update { it.copy(generateErrorMessage = "Jaringan bermasalah") }
                     }
                 }
             }
@@ -646,16 +650,17 @@ class FolderDetailViewModel(application: Application) : AndroidViewModel(applica
                             onNavigateToSummaryDetail?.invoke(generatedSummary.id ?: "")
 
                         } else {
-                            _uiState.update { it.copy(isGeneratingSummary = false, errorMessage = parseErrorMessage(response.errorBody()?.string())) }
+                            _uiState.update { it.copy(isGeneratingSummary = false, generateErrorMessage = parseErrorMessage(response.errorBody()?.string())) }
                         }
                     } catch (e: Exception) {
-                        _uiState.update { it.copy(isGeneratingSummary = false, errorMessage = "Jaringan bermasalah") }
+                        _uiState.update { it.copy(isGeneratingSummary = false, generateErrorMessage = "Jaringan bermasalah") }
                     }
                 }
             }
 
             FolderDetailEvent.ClearError -> _uiState.update { it.copy(errorMessage = null) }
             FolderDetailEvent.ClearSuccessMessage -> _uiState.update { it.copy(successMessage = null) }
+            FolderDetailEvent.ClearGenerateError -> _uiState.update { it.copy(generateErrorMessage = null) }
 
             is FolderDetailEvent.DownloadFileClicked -> {
                 viewModelScope.launch {
@@ -666,12 +671,12 @@ class FolderDetailViewModel(application: Application) : AndroidViewModel(applica
                             val downloadUrl = response.body()?.url
                             if (downloadUrl != null) {
                                 onDownloadFile?.invoke(downloadUrl, event.file.name)
-                                _uiState.update { it.copy(successMessage = "Memulai download...") }
+                                _uiState.update { it.copy(successMessage = "Mulai mengunduh...") }
                             } else {
-                                _uiState.update { it.copy(errorMessage = "Link download tidak valid") }
+                                _uiState.update { it.copy(errorMessage = "Tautan unduhan tidak valid") }
                             }
                         } else {
-                            _uiState.update { it.copy(errorMessage = "Gagal mendapatkan link download") }
+                            _uiState.update { it.copy(errorMessage = "Gagal mendapatkan tautan unduhan") }
                         }
                     } catch (e: Exception) {
                         _uiState.update { it.copy(errorMessage = "Terjadi kesalahan: ${e.message}") }

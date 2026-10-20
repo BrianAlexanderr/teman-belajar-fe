@@ -4,6 +4,7 @@ import android.app.Application
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.teman_belajar.fetch.ApiService
+import com.example.teman_belajar.fetch.TokenManager
 import com.example.teman_belajar.fetch.model.CreateFolderRequest
 import com.example.teman_belajar.fetch.model.RenameFolderRequest
 import com.example.teman_belajar.utils.datastore.UserPreferences
@@ -77,8 +78,8 @@ class HomeViewModel(application: Application) : AndroidViewModel(application) {
     var onNavigateToQuizList: (() -> Unit)? = null
 
     init {
+        // folders are fetched by HomeScreen's ON_RESUME observer
         fetchUserName()
-        fetchFolders()
     }
 
     private fun fetchUserName() {
@@ -87,6 +88,8 @@ class HomeViewModel(application: Application) : AndroidViewModel(application) {
                 if (!fullName.isNullOrBlank()) {
                     val firstName = fullName.trim().substringBefore(" ")
                     _uiState.update { it.copy(userName = firstName) }
+                } else {
+                    _uiState.update { it.copy(userName = "Pelajar") }
                 }
             }
         }
@@ -126,7 +129,7 @@ class HomeViewModel(application: Application) : AndroidViewModel(application) {
 
     private fun handleApiError(response: retrofit2.Response<*>, defaultError: String) {
         if (response.code() == 401) {
-            _uiState.update { it.copy(isLoading = false) }
+            logout()
             return
         }
         val errorString = response.errorBody()?.string()
@@ -138,7 +141,7 @@ class HomeViewModel(application: Application) : AndroidViewModel(application) {
 
     fun onEvent(event: HomeEvent) {
         when (event) {
-            HomeEvent.FetchFolders -> fetchFolders()
+            HomeEvent.FetchFolders -> fetchFolders(forceRefresh = true)
             HomeEvent.LogoutClicked -> logout()
             is HomeEvent.SearchQueryChanged -> {
                 _uiState.update { state ->
@@ -193,7 +196,10 @@ class HomeViewModel(application: Application) : AndroidViewModel(application) {
                     viewModelScope.launch {
                         try {
                             val response = apiService.renameFolder(RenameFolderRequest(folder.id, newName))
-                            if (response.isSuccessful) fetchFolders(true) else handleApiError(response, "Gagal mengubah nama folder")
+                            if (response.isSuccessful) {
+                                fetchFolders(true)
+                                _uiState.update { it.copy(successMessage = "Nama folder berhasil diubah!") }
+                            } else handleApiError(response, "Gagal mengubah nama folder")
                         } catch (_: Exception) { _uiState.update { it.copy(isLoading = false, errorMessage = "Terjadi kesalahan jaringan") } }
                     }
                 }
@@ -206,7 +212,10 @@ class HomeViewModel(application: Application) : AndroidViewModel(application) {
                     viewModelScope.launch {
                         try {
                             val response = apiService.deleteFolder(folder.id)
-                            if (response.isSuccessful) fetchFolders(true) else handleApiError(response, "Gagal menghapus folder")
+                            if (response.isSuccessful) {
+                                fetchFolders(true)
+                                _uiState.update { it.copy(successMessage = "Folder berhasil dihapus!") }
+                            } else handleApiError(response, "Gagal menghapus folder")
                         } catch (_: Exception) { _uiState.update { it.copy(isLoading = false, errorMessage = "Terjadi kesalahan jaringan") } }
                     }
                 }
@@ -218,7 +227,9 @@ class HomeViewModel(application: Application) : AndroidViewModel(application) {
 
     private fun logout() {
         viewModelScope.launch {
+            TokenManager.clearTokens()
             userPreferences.setLoggedIn(false)
+            _uiState.update { HomeUiState() }
             onNavigateToLogin?.invoke()
         }
     }
