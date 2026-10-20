@@ -450,6 +450,28 @@ fun FolderDetailScreen(
         }
     }
 
+    if (uiState.generateErrorMessage != null) {
+        Dialog(onDismissRequest = { onEvent(FolderDetailEvent.ClearGenerateError) }) {
+            Card(shape = RoundedCornerShape(16.dp), colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)) {
+                Column(modifier = Modifier.padding(32.dp), horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.Center) {
+                    Icon(Icons.Default.ErrorOutline, contentDescription = "Kesalahan", tint = AppColors.Error, modifier = Modifier.size(48.dp))
+                    Spacer(Modifier.height(24.dp))
+                    Text("Gagal", fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onSurface)
+                    Text(uiState.generateErrorMessage ?: "", fontSize = 12.sp, textAlign = TextAlign.Center, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    Spacer(Modifier.height(24.dp))
+                    Button(
+                        onClick = { onEvent(FolderDetailEvent.ClearGenerateError) },
+                        modifier = Modifier.fillMaxWidth(),
+                        shape = RoundedCornerShape(12.dp),
+                        colors = ButtonDefaults.buttonColors(containerColor = AppColors.Purple)
+                    ) {
+                        Text("Tutup", color = Color.White, fontWeight = FontWeight.Bold)
+                    }
+                }
+            }
+        }
+    }
+
     if (uiState.isAddFileMenuVisible) {
         ActionSelectionDialog(
             onDismiss = { onEvent(FolderDetailEvent.DismissAddFileMenu) },
@@ -585,7 +607,11 @@ private fun CourseMaterialCard(
                 }
             } else {
                 Column(modifier = Modifier.padding(12.dp).fillMaxWidth()) {
-                    Image(painter = painterResource(if (file.mimeType.contains("pdf")) R.drawable.file else R.drawable.doc), contentDescription = null, modifier = Modifier.size(32.dp))
+                    Image(painter = painterResource(when {
+                        file.mimeType.contains("pdf") -> R.drawable.file
+                        file.mimeType.contains("powerpoint") || file.mimeType.contains("presentation") -> R.drawable.pptx
+                        else -> R.drawable.doc
+                    }), contentDescription = null, modifier = Modifier.size(32.dp))
                     Spacer(modifier = Modifier.height(12.dp))
                     Text(file.name, fontWeight = FontWeight.Bold, fontSize = 13.sp, color = MaterialTheme.colorScheme.onSurface, maxLines = 1, overflow = TextOverflow.Ellipsis)
                 }

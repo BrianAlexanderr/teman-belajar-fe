@@ -101,7 +101,7 @@ data class QuestionAttemptDetailResponse(
     val questionId: String?,
     val isCorrect: Boolean?,
     val selectedAnswer: String?,
-    @SerializedName("explaination")
+    @SerializedName(value = "explanation", alternate = ["explaination"])
     val explanation: String?
 )
 

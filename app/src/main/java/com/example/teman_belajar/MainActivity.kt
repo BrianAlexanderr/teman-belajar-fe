@@ -26,7 +26,6 @@ import com.example.teman_belajar.register.ui.RegistrationViewModel
 import com.example.teman_belajar.components.SessionExpiredDialog
 import com.example.teman_belajar.home.HomeScreen
 import com.example.teman_belajar.home.HomeViewModel
-import com.example.teman_belajar.home.HomeEvent
 import com.example.teman_belajar.splash.SplashScreen
 import com.example.teman_belajar.theme.TemanBelajarTheme
 import com.example.teman_belajar.utils.SessionManager
@@ -106,11 +105,6 @@ class MainActivity : ComponentActivity() {
                         }
 
                         composable("home") {
-                            // Fetch data Home setiap kali halaman dibuka
-                            LaunchedEffect(Unit) {
-                                homeViewModel.onEvent(HomeEvent.FetchFolders)
-                            }
-
                             val uiState by homeViewModel.uiState.collectAsState()
                             homeViewModel.onNavigateToLogin = {
                                 navController.navigate("login") {

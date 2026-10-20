@@ -7,6 +7,8 @@ import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.teman_belajar.fetch.ApiService
 import com.example.teman_belajar.fetch.model.CheckQuizRequest
+import com.example.teman_belajar.fetch.model.QuestionAttemptDetailResponse
+import com.example.teman_belajar.fetch.model.QuizItemResponse
 import com.example.teman_belajar.fetch.model.QuestionAttemptRequest
 import com.example.teman_belajar.fetch.model.SubmitQuizRequest
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -88,6 +90,21 @@ class QuizViewModel(application: Application) : AndroidViewModel(application) {
         return mapLabelToIndex(t)
     }
 
+    // GET /api/quiz/{id} tidak mengirim answerCorrect, jadi untuk jawaban tersimpan yang salah ambil kunci dari /quiz/check
+    private suspend fun resolveCorrectIndex(item: QuizItemResponse, options: List<String>, attempt: QuestionAttemptDetailResponse?): Int {
+        val fromQuiz = findOptionIndex(options, item.answerCorrect)
+        if (fromQuiz != -1) return fromQuiz
+        val selected = attempt?.selectedAnswer?.takeIf { it.isNotEmpty() } ?: return -1
+        if (attempt.isCorrect == true) return findOptionIndex(options, selected)
+        return try {
+            val check = apiService.checkQuiz(CheckQuizRequest(answer = selected, questionId = item.id ?: "")).body()
+            findOptionIndex(options, check?.correctAnswer, check?.correctAnswerField)
+        } catch (e: Exception) {
+            Log.e("QuizViewModel", "Resolve correct answer error", e)
+            -1
+        }
+    }
+
     fun fetchQuiz(quizId: String) {
         _uiState.update { 
             it.copy(
@@ -163,7 +180,7 @@ class QuizViewModel(application: Application) : AndroidViewModel(application) {
                             item.answerC ?: "",
                             item.answerD ?: ""
                         )
-                        val correctIdx = findOptionIndex(options, item.answerCorrect)
+                        val correctIdx = resolveCorrectIndex(item, options, attempt)
                         QuizQuestion(
                             id = item.id ?: "",
                             text = item.question ?: "Pertanyaan tidak tersedia",
@@ -264,7 +281,7 @@ class QuizViewModel(application: Application) : AndroidViewModel(application) {
                             item.answerD ?: ""
                         )
                         
-                        val correctIdx = findOptionIndex(options, item.answerCorrect)
+                        val correctIdx = resolveCorrectIndex(item, options, attempt)
 
                         QuizQuestion(
                             id = item.id ?: "",

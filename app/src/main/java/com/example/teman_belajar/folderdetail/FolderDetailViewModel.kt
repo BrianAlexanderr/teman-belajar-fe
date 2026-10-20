@@ -79,6 +79,8 @@ data class FolderDetailUiState(
     val isGeneratingSummary: Boolean = false,
     val errorMessage: String? = null,
     val successMessage: String? = null,
+    // Shown as a popup (not a toast) so generate quiz/summary failures from BE are not missed
+    val generateErrorMessage: String? = null,
 
     val isAddFileMenuVisible: Boolean = false,
     val fileCounter: Int = 1,
@@ -141,6 +143,7 @@ sealed class FolderDetailEvent {
 
     object ClearError : FolderDetailEvent()
     object ClearSuccessMessage : FolderDetailEvent()
+    object ClearGenerateError : FolderDetailEvent()
     data class FileClicked(val file: DummyFile) : FolderDetailEvent()
     data class DownloadFileClicked(val file: DummyFile) : FolderDetailEvent()
 }
@@ -575,10 +578,10 @@ class FolderDetailViewModel(application: Application) : AndroidViewModel(applica
                         if (res.isSuccessful) {
                             _uiState.update { it.copy(successMessage = "Kuis sedang dibuat!") }
                         } else {
-                            _uiState.update { it.copy(errorMessage = parseErrorMessage(res.errorBody()?.string())) }
+                            _uiState.update { it.copy(generateErrorMessage = parseErrorMessage(res.errorBody()?.string())) }
                         }
                     } catch (e: Exception) {
-                        _uiState.update { it.copy(errorMessage = "Jaringan bermasalah") }
+                        _uiState.update { it.copy(generateErrorMessage = "Jaringan bermasalah") }
                     }
                 }
             }
@@ -647,16 +650,17 @@ class FolderDetailViewModel(application: Application) : AndroidViewModel(applica
                             onNavigateToSummaryDetail?.invoke(generatedSummary.id ?: "")
 
                         } else {
-                            _uiState.update { it.copy(isGeneratingSummary = false, errorMessage = parseErrorMessage(response.errorBody()?.string())) }
+                            _uiState.update { it.copy(isGeneratingSummary = false, generateErrorMessage = parseErrorMessage(response.errorBody()?.string())) }
                         }
                     } catch (e: Exception) {
-                        _uiState.update { it.copy(isGeneratingSummary = false, errorMessage = "Jaringan bermasalah") }
+                        _uiState.update { it.copy(isGeneratingSummary = false, generateErrorMessage = "Jaringan bermasalah") }
                     }
                 }
             }
 
             FolderDetailEvent.ClearError -> _uiState.update { it.copy(errorMessage = null) }
             FolderDetailEvent.ClearSuccessMessage -> _uiState.update { it.copy(successMessage = null) }
+            FolderDetailEvent.ClearGenerateError -> _uiState.update { it.copy(generateErrorMessage = null) }
 
             is FolderDetailEvent.DownloadFileClicked -> {
                 viewModelScope.launch {

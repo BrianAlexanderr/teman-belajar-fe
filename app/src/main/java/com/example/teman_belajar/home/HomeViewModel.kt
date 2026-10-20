@@ -78,8 +78,8 @@ class HomeViewModel(application: Application) : AndroidViewModel(application) {
     var onNavigateToQuizList: (() -> Unit)? = null
 
     init {
+        // folders are fetched by HomeScreen's ON_RESUME observer
         fetchUserName()
-        fetchFolders()
     }
 
     private fun fetchUserName() {
