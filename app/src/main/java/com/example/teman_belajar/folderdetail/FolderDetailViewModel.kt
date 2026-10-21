@@ -33,7 +33,9 @@ import okhttp3.OkHttpClient
 import okhttp3.Request
 import okhttp3.RequestBody
 import okio.BufferedSink
+import okio.source
 import org.json.JSONObject
+import java.io.IOException
 import java.util.UUID
 import kotlin.coroutines.resume
 import kotlin.coroutines.resumeWithException
@@ -150,6 +152,11 @@ sealed class FolderDetailEvent {
 
 class FolderDetailViewModel(application: Application) : AndroidViewModel(application) {
     private val apiService = ApiService.create(application)
+
+    companion object {
+        // Plain client (no auth interceptor) for signed-URL PUTs, shared so connections are reused
+        private val uploadClient = OkHttpClient()
+    }
 
     private val _uiState = MutableStateFlow(FolderDetailUiState())
     val uiState: StateFlow<FolderDetailUiState> = _uiState.asStateFlow()
@@ -332,30 +339,32 @@ class FolderDetailViewModel(application: Application) : AndroidViewModel(applica
                         val materialId = body?.fileName ?: ""
 
                         if (signedUrl.isNotEmpty()) {
-                            val inputStream = getApplication<Application>().contentResolver.openInputStream(contentUri)
-                            val fileBytes = inputStream?.use { it.readBytes() }
+                            val resolver = getApplication<Application>().contentResolver
+                            val putCode = withContext(Dispatchers.IO) {
+                                // ponytail: -1 (unknown size) makes OkHttp send chunked; fine for picker URIs, which report a size
+                                val fileLength = resolver.openAssetFileDescriptor(contentUri, "r")?.use { it.length } ?: -1L
+                                val uploadRequest = Request.Builder()
+                                    .url(signedUrl).put(object : RequestBody() {
+                                        override fun contentType() = mimeType.toMediaTypeOrNull()
+                                        override fun contentLength() = fileLength
+                                        // Stream from disk instead of loading the whole file into memory first
+                                        override fun writeTo(sink: BufferedSink) {
+                                            val input = resolver.openInputStream(contentUri) ?: throw IOException("Tidak dapat membaca file")
+                                            input.source().use { sink.writeAll(it) }
+                                        }
+                                    }).build()
+                                uploadClient.newCall(uploadRequest).execute().use { it.code }
+                            }
 
-                            if (fileBytes != null) {
-                                val putCode = withContext(Dispatchers.IO) {
-                                    val uploadRequest = Request.Builder()
-                                        .url(signedUrl).put(object : RequestBody() {
-                                            override fun contentType() = mimeType.toMediaTypeOrNull()
-                                            override fun contentLength() = fileBytes.size.toLong()
-                                            override fun writeTo(sink: BufferedSink) { sink.write(fileBytes) }
-                                        }).build()
-                                    OkHttpClient().newCall(uploadRequest).execute().use { it.code }
-                                }
-
-                                if (putCode in 200..299) {
-                                    if (apiService.notifyUploadSuccess(MaterialUploadSuccessRequest(materialId, signedUrl.substringBefore("?"))).isSuccessful) {
-                                        loadMaterials(folderId)
-                                        _uiState.update { it.copy(
-                                            searchQuery = "",
-                                            successMessage = "Dokumen berhasil diunggah!",
-                                            isLoading = false
-                                        ) }
-                                        return@launch
-                                    }
+                            if (putCode in 200..299) {
+                                if (apiService.notifyUploadSuccess(MaterialUploadSuccessRequest(materialId, signedUrl.substringBefore("?"))).isSuccessful) {
+                                    loadMaterials(folderId)
+                                    _uiState.update { it.copy(
+                                        searchQuery = "",
+                                        successMessage = "Dokumen berhasil diunggah!",
+                                        isLoading = false
+                                    ) }
+                                    return@launch
                                 }
                             }
                         }
